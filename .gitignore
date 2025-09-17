@@ -1,0 +1,83 @@
+# Slack Intro Bot - Security & Privacy
+
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.development
+config.ini
+
+# API Keys and tokens
+*.key
+*.pem
+*.token
+secrets/
+credentials/
+
+# Generated files
+daily_intros_*.md
+test_daily_intros_*.md
+welcome_messages_*.txt
+test_welcome_messages_*.txt
+*.log
+
+# Runtime files
+last_check.txt
+*.pid
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+tmp/
+temp/
+.tmp/
