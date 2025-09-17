@@ -106,7 +106,9 @@ Options:
 The bot generates welcome messages using this template:
 
 ```
-Aloha [FirstName], Welcome to [Your Community Name]!
+Aloha [FirstName]!
+
+Welcome to [Your Community Name]!
 
 Have a wonderful day!
 ```
@@ -156,7 +158,9 @@ Found **2** new introduction(s) today.
 ### 💬 Draft Welcome Message
 
 ```
-Aloha John, Welcome to [Your Community Name]!
+Aloha John!
+
+Welcome to [Your Community Name]!
 
 Have a wonderful day!
 ```
