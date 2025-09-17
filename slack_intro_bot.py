@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Slack Intro Bot - Daily check for new introductions in Lenny's community
+Slack Intro Bot - Daily check for new introductions in target community
 Generates personalized welcome messages for new members
 """
 
@@ -104,9 +104,8 @@ class SlackIntroBot:
 
     def generate_welcome_message(self, intro_data: Dict) -> str:
         """Generate personalized welcome message"""
-        first_name = intro_data['first_name']
-        template = f"Aloha {first_name}, Welcome to Lenny's podcast community!\n\nHave a wonderful day!"
-        return template
+        first_name = intro_data['first_name'].capitalize()
+        return self.config.welcome_message_template.format(first_name=first_name)
 
     def process_new_intros(self):
         """Main function to process new introductions"""
@@ -179,7 +178,7 @@ class SlackIntroBot:
 def main():
     """Main entry point with configurable parameters"""
     # Configuration
-    CHANNEL_ID = "C0142RHUS4Q"  # Lenny's intro channel
+    CHANNEL_ID = "YOUR_CHANNEL_ID_HERE"  # Target intro channel
     CHECK_TIME = "08:00"        # 8 AM
     TIMEZONE = "CET"            # Central European Time
 

@@ -70,8 +70,9 @@ def parse_intro_message(message: Dict) -> Optional[Dict]:
 
 def generate_welcome_message(intro_data: Dict) -> str:
     """Generate personalized welcome message"""
-    first_name = intro_data['first_name']
-    return f"Aloha {first_name}, Welcome to Lenny's podcast community!\n\nHave a wonderful day!"
+    config = Config()
+    first_name = intro_data['first_name'].capitalize()
+    return config.welcome_message_template.format(first_name=first_name)
 
 def get_yesterday_date() -> str:
     """Get yesterday's date in YYYY-MM-DD format"""

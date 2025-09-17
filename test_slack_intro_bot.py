@@ -68,8 +68,10 @@ def parse_intro_message(message: Dict) -> Optional[Dict]:
 
 def generate_welcome_message(intro_data: Dict) -> str:
     """Generate personalized welcome message"""
-    first_name = intro_data['first_name']
-    return f"Aloha {first_name}, Welcome to Lenny's podcast community!\n\nHave a wonderful day!"
+    from config import Config
+    config = Config()
+    first_name = intro_data['first_name'].capitalize()
+    return config.welcome_message_template.format(first_name=first_name)
 
 def test_with_sample_data():
     """Test the bot with the sample data we retrieved earlier"""

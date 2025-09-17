@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Slack Intro Bot - Integrated with MCP Zapier
-Daily check for new introductions in Lenny's community with actual Slack integration
+Daily check for new introductions in target community with actual Slack integration
 """
 
 import json
@@ -128,8 +128,8 @@ class SlackIntroBotIntegrated:
 
     def generate_welcome_message(self, intro_data: Dict) -> str:
         """Generate personalized welcome message"""
-        first_name = intro_data['first_name']
-        return f"Aloha {first_name}, Welcome to Lenny's podcast community!\n\nHave a wonderful day!"
+        first_name = intro_data['first_name'].capitalize()
+        return self.config.welcome_message_template.format(first_name=first_name)
 
     def process_new_intros(self):
         """Main function to process new introductions"""
@@ -248,7 +248,7 @@ def main():
     """Main entry point"""
     import argparse
 
-    parser = argparse.ArgumentParser(description='Slack Intro Bot for Lenny\'s Community')
+    parser = argparse.ArgumentParser(description='Slack Intro Bot for Community Management')
     parser.add_argument('--channel', help='Slack channel ID (overrides .env)')
     parser.add_argument('--time', help='Daily check time (HH:MM format, overrides .env)')
     parser.add_argument('--timezone', help='Timezone for scheduled runs (overrides .env)')

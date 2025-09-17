@@ -18,7 +18,7 @@ class Config:
     @property
     def slack_channel_id(self) -> str:
         """Slack channel ID to monitor"""
-        return os.getenv('SLACK_CHANNEL_ID', 'C0142RHUS4Q')
+        return os.getenv('SLACK_CHANNEL_ID', 'YOUR_CHANNEL_ID_HERE')
 
     @property
     def slack_bot_token(self) -> Optional[str]:
@@ -59,6 +59,12 @@ class Config:
     def zapier_api_key(self) -> Optional[str]:
         """Zapier API key"""
         return os.getenv('ZAPIER_API_KEY')
+
+    @property
+    def welcome_message_template(self) -> str:
+        """Welcome message template (secured in .env)"""
+        template = os.getenv('WELCOME_MESSAGE_TEMPLATE', 'Aloha {first_name}, Welcome to our community!\n\nHave a wonderful day!')
+        return template.replace('\\n', '\n')
 
     @property
     def notification_email(self) -> Optional[str]:
