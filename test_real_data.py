@@ -174,8 +174,8 @@ def test_with_real_slack_data():
             welcome_messages.append((intro_data, welcome_msg))
 
             print(f"✅ Intro detected!")
-            print(f"   Name: {intro_data['first_name']} ({intro_data['real_name']})")
-            print(f"   LinkedIn: {intro_data['linkedin_link'] or 'Not provided'}")
+            print(f"   Name: {intro_data['first_name']}")  # Only show first name
+            print(f"   LinkedIn: {'✅ Provided' if intro_data['linkedin_link'] else '❌ Not provided'}")
             print(f"   Welcome Message:")
             print(f"   {welcome_msg}")
         else:

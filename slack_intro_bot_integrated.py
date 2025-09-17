@@ -70,20 +70,50 @@ class SlackIntroBotIntegrated:
         text_lower = text.lower()
         return any(keyword in text_lower for keyword in intro_keywords)
 
+    def validate_channel_id(self, channel_id: str) -> bool:
+        """Validate Slack channel ID format for security"""
+        import re
+        # Slack channel IDs should start with C and be alphanumeric
+        if not channel_id or not isinstance(channel_id, str):
+            return False
+        # Basic format validation: starts with C followed by alphanumeric characters
+        pattern = r'^C[A-Z0-9]{8,}$'
+        return bool(re.match(pattern, channel_id))
+
+    def sanitize_command_arg(self, arg: str) -> str:
+        """Sanitize command line arguments to prevent injection"""
+        if not arg or not isinstance(arg, str):
+            return ""
+        # Remove potentially dangerous characters
+        import re
+        # Allow alphanumeric, spaces, hyphens, underscores, colons, and basic punctuation
+        sanitized = re.sub(r'[^a-zA-Z0-9\s\-_:.,#]', '', arg)
+        # Limit length to prevent buffer overflow
+        return sanitized[:200]
+
     def get_new_slack_messages(self) -> List[Dict]:
         """Get new messages from Slack using Claude Code MCP integration"""
         try:
+            # Validate channel ID before use
+            if not self.validate_channel_id(self.channel_id):
+                print(f"Error: Invalid channel ID format: {self.channel_id}")
+                return []
+
+            # Sanitize all inputs
+            sanitized_channel_id = self.sanitize_command_arg(self.channel_id)
+            sanitized_date = self.sanitize_command_arg(self.get_yesterday_date())
+            
             # Use Claude Code to call the Zapier MCP integration
             # This simulates calling: mcp__zapier__slack_find_message
             cmd = [
                 'claude', 'mcp', 'call', 'mcp__zapier__slack_find_message',
-                '--instructions', f'Find messages in channel {self.channel_id} from the last 24 hours, sorted by most recent',
-                '--query', f'in:#intros after:{self.get_yesterday_date()}',
+                '--instructions', f'Find messages in channel {sanitized_channel_id} from the last 24 hours, sorted by most recent',
+                '--query', f'in:#intros after:{sanitized_date}',
                 '--sort_by', 'timestamp',
                 '--sort_dir', 'desc'
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             if result.returncode == 0:
                 # Parse the JSON response
                 response = json.loads(result.stdout)
@@ -92,6 +122,12 @@ class SlackIntroBotIntegrated:
                 print(f"Error calling Slack API: {result.stderr}")
                 return []
 
+        except subprocess.TimeoutExpired:
+            print("Error: Command timed out")
+            return []
+        except json.JSONDecodeError as e:
+            print(f"Error parsing API response: {e}")
+            return []
         except Exception as e:
             print(f"Error getting Slack messages: {e}")
             return []
@@ -150,8 +186,8 @@ class SlackIntroBotIntegrated:
                 welcome_messages.append((intro_data, welcome_msg))
 
                 print(f"\n📝 New intro detected:")
-                print(f"   Name: {intro_data['first_name']} ({intro_data['real_name']})")
-                print(f"   LinkedIn: {intro_data['linkedin_link'] or 'Not provided'}")
+                print(f"   Name: {intro_data['first_name']}")  # Only show first name
+                print(f"   LinkedIn: {'✅ Provided' if intro_data['linkedin_link'] else '❌ Not provided'}")
                 print(f"   Message: {welcome_msg}")
 
         # Save all welcome messages to file

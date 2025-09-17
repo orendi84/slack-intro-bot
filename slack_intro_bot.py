@@ -125,8 +125,8 @@ class SlackIntroBot:
                 welcome_msg = self.generate_welcome_message(intro_data)
 
                 print(f"\n📝 New intro detected:")
-                print(f"   Name: {intro_data['first_name']} ({intro_data['real_name']})")
-                print(f"   LinkedIn: {intro_data['linkedin_link'] or 'Not provided'}")
+                print(f"   Name: {intro_data['first_name']}")  # Only show first name
+                print(f"   LinkedIn: {'✅ Provided' if intro_data['linkedin_link'] else '❌ Not provided'}")
                 print(f"   Generated message:")
                 print(f"   {welcome_msg}")
 

@@ -185,8 +185,8 @@ def process_live_slack_data():
             welcome_messages.append((intro_data, welcome_msg))
 
             print(f"✅ Intro detected!")
-            print(f"   Name: {intro_data['first_name']} ({intro_data['real_name']})")
-            print(f"   LinkedIn: {intro_data['linkedin_link'] or 'Not provided'}")
+            print(f"   Name: {intro_data['first_name']}")  # Only show first name
+            print(f"   LinkedIn: {'✅ Provided' if intro_data['linkedin_link'] else '❌ Not provided'}")
             print(f"   Posted: {intro_data['timestamp']}")
         else:
             print("❌ Not recognized as intro message")
@@ -201,7 +201,7 @@ def process_live_slack_data():
         print(f"\n📊 Summary of processed introductions:")
         for i, (intro_data, _) in enumerate(welcome_messages, 1):
             linkedin_status = "✅ LinkedIn" if intro_data['linkedin_link'] else "❌ No LinkedIn"
-            print(f"   {i}. {intro_data['real_name']} - {linkedin_status}")
+            print(f"   {i}. {intro_data['first_name']} - {linkedin_status}")  # Only show first name
 
         print(f"\n🚀 SUCCESS! Live Slack Intro Bot generated real welcome messages!")
         print(f"   📁 Output file: {filename}")
