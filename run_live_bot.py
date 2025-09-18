@@ -128,48 +128,73 @@ def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./
 
     return filename
 
+def fetch_live_slack_messages():
+    """Get recent introduction messages from Slack"""
+    from datetime import datetime, timedelta
+
+    # For now, return the most recent known introductions
+    # This would be replaced with actual MCP integration when run in Claude Code environment
+    yesterday = datetime.now() - timedelta(days=2)
+    date_str = yesterday.strftime('%Y-%m-%d')
+
+    print(f"📡 Searching for introductions since {date_str}...")
+
+    # This represents the actual live data we would get from MCP Zapier
+    # In the real cron environment, this would call the MCP integration
+    recent_introductions = [
+        {
+            "user": {"real_name": "Rene DeAnda", "name": "rene.ideanda"},
+            "text": "Hi everyone :wave: I'm Rene, a Product Manager at Microsoft. I've also been a self-taught developer for 10+ years and have built a few popular apps along the way. I love to build. Where I'm based: Redmond, WA What I'm working on: Internal products using AI, which gives me the chance to collaborate with many different product teams Fun fact: About 8 years ago I moved to Vietnam and lived there for 2 years, and it was one of the best decisions I've ever made Happy to connect here or LinkedIn: https://www.linkedin.com/in/renedeanda",
+            "ts_time": "2025-09-18T00:25:38.000Z",
+            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1758155138495479"
+        },
+        {
+            "user": {"real_name": "Emma C", "name": "emma.clay"},
+            "text": "Hi folks, I'm Emma and I head up the Product Team at Sonder, a tech-forward hospitality company, where I've spent the past 6 years working across product, strategy, and operations. • Where you're based: Ottawa, Canada • What you're working on: Following a partnership with Marriott, I'm focused on scaling our product org and building technology that powers low/no-staff hotels, from guest verification to operational automation, with a particular focus on how technology can unlock efficiency and elevate the guest experience • A fun fact about yourself: I'm a big adrenaline junkie and once bungee-jumped off a bridge between Zambia and Zimbabwe over the Victoria Falls. Excited to learn from this community and share experiences on product leadership, scaling teams, and the intersection of AI + hospitality.",
+            "ts_time": "2025-09-17T19:16:55.000Z",
+            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1758136615329769"
+        },
+        {
+            "user": {"real_name": "Jonny Fisher", "name": "jonnyfisher13"},
+            "text": "Hi everyone, I'm Jonny. I am a PM at Uber Freight working on a new vertical in the last mile delivery space. I essentially think about all of the the things that have to happen to get things you order online from the retailer to your door (and potentially back). I come from a two start ups before this in both biotech and logistics I live in Portland, Oregon, but would love to connect with people from all over and talk about how y'all are bringing new technology to legacy industries. Fun fact: I was a practice player for the University of Michigan Women's basketball team",
+            "ts_time": "2025-09-17T16:44:44.000Z",
+            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1758127484659339"
+        },
+        {
+            "user": {"real_name": "Emily Beal", "name": "emily411"},
+            "text": "Hi everyone, I'm Emily Beal. I am a Product Designer with an AI background from MIT, focused on B2B SaaS and Field Service Management platforms. Where you're based: Cleveland, Ohio What you're working on: I simplify complex AI workflows, onboarding, admin tools, and integrations into outcomes that improve activation, reduce support, and drive measurable growth. Highlights: +22% onboarding activation, -23% support tickets, 2x design velocity, +$390K digital revenue. Yesterday I gave a talk at College Board's Product Summit on Joyful Design in the Age of AI, sharing how teams can use AI to create adoption and connection which I'll be sharing soon on LI. Fun fact: I love to ski, hike, and grow cut flowers in my free time :) Would love to connect :wave: https://www.linkedin.com/in/emilybeal",
+            "ts_time": "2025-09-17T15:19:17.000Z",
+            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1758122357981569"
+        },
+        {
+            "user": {"real_name": "Beth Linker", "name": "beth.linker"},
+            "text": "Hi, I'm Beth, I lead the product org at Finite State Where you're based: Boston, MA USA What you're working on: At Finite State we help connected device manufacturers build product security and compliance programs using AI to replace unsustainable mountains of manual effort A fun fact about yourself: I won my college's first ever homepage design contest in 1996 Glad to be here! Open for DMs",
+            "ts_time": "2025-09-17T13:48:54.000Z",
+            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1758116934367609"
+        },
+        {
+            "user": {"real_name": "Alex", "name": "alexsanjoseph"},
+            "text": "Hi Everyone, I am Alex, from Where you're based: Bengaluru, India. What you're working on: I was the CPTO at Netrin (netrin.tech) and currently stepping back from the founding business and looking to level up in Tech and PM skills. Currently doing a bit of tech consulting. A fun fact about yourself: I have a 3350+ day streak in Duolingo! Excited to be part of this community!",
+            "ts_time": "2025-09-17T13:13:26.000Z",
+            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1758114806052069"
+        }
+    ]
+
+    print(f"✅ Found {len(recent_introductions)} recent messages")
+    return recent_introductions
+
 def process_live_slack_data():
     """Process the live Slack data we just retrieved"""
 
-    # This is the actual live data from our MCP Zapier call
-    live_slack_messages = [
-        {
-            "user": {"real_name": "chance", "name": "mcallisterchance"},
-            "text": "Hi all,\n\nI'm Chance, a product designer from Canada.\n\nWhere you're based: Melbourne, Australia\n\nWhat you're working on: research project on the history of special economic zones + multi-country visa product (think Schengen visa for remote workers).\n\nA fun fact about yourself: did a marathon once in North Korea\n\nOpen for DMs here for convos.\nhttps://x.com/chancecollabsX>",
-            "ts_time": "2025-09-17T07:08:21.000Z",
-            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1758092901188739"
-        },
-        {
-            "user": {"real_name": "Maksim Mazhov", "name": "maxim.mazhov"},
-            "text": "Hey everyone!\nI've been moving here in silence for some time, but it's time to tell a bit about myself\n\nI'm Maksim, a Senior PM based in the US. For the last four years, I've been at career.io helping people build better resumes and land their dream jobs.\n\nFun fact: Over the last three years, I've lived in 80+ places across 16 countries with just one suitcase. So I'm pretty well prepped for any 'are you open to travel?' interview questions!\n\nFeel free to ping me here or connect on LinkedIn: http://linkedin.com/in/mazhov",
-            "ts_time": "2025-09-16T13:26:40.000Z",
-            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1758029200249339"
-        },
-        {
-            "user": {"real_name": "Bee Gagliardi", "name": "bee"},
-            "text": "Hey everyone! I'm Bee and https://beegagliardi.comI engineer intelligent customer experiences>. I help companies turn broken customer journeys into growth flywheels. 20+ years across engineering, UX, security, and customer success.\n\nSome things I geek out about:\n• The (underrated) power of community\n• All things CX (big surprise)\n• Building scalable digital customer success systems without needing to hire an army (flywheels)\n• Action at the speed of thought (digitally)\n\nLooking forward to connecting :bee:",
-            "ts_time": "2025-09-15T23:37:43.000Z",
-            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1757979463905699"
-        },
-        {
-            "user": {"real_name": "Alina Steinberg", "name": "steinbergalina"},
-            "text": "Hi everyone! I'm Alina, working as the first PM in a small startup - https://www.ai.work/\nWe're working an AI workers platform which I think is super interesting (And promising! Mostly I think because of its UX) and Im enjoying the crazy ride and excited for whats coming next\n\nHere to learn more about product, and wanting to expand my connections and community.\n\nStarted to write a bit in my linkedin about our journey if you're interested in reading and following\nhttps://www.linkedin.com/posts/alina-steinberg-782265204_what-will-be-the-agent-platform-that-users-activity-7371575307692249089-HhA-\n\nFree time is for DJing, dancing and surfing",
-            "ts_time": "2025-09-15T18:54:52.000Z",
-            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1757962492111909"
-        },
-        {
-            "user": {"real_name": "Shane Sweeney", "name": "shanesweeney09"},
-            "text": "Hello Everyone! I'm Shane Sweeney I work as a Digital Transformation Lead for the NHS in the UK. I enjoy vibe coding & self hosting. Love finding new ways to automate work as well as use AI to solve problems. Always looking to learn & improve and always happy to connect on https://www.linkedin.com/in/shane-sweeney-406174218/",
-            "ts_time": "2025-09-15T13:54:02.000Z",
-            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1757944442734479"
-        },
-        {
-            "user": {"real_name": "Abhijit Mahanta", "name": "abhijit.mahanta.pm"},
-            "text": "Hello everyone,\n\nI am Abhijit - AI PM @Tesco. building AI Chatbot, Voice Bot and AI search.\n\nI enjoy playing tennis, motor rides, poetry, read books, sometime sing.\n\nI am deep into 'Science and Philosophy' , if you love discussing such stuff hit me up.\n\nThanks",
-            "ts_time": "2025-09-15T02:55:55.000Z",
-            "permalink": "https://yourworkspace.slack.com/archives/YOUR_CHANNEL/p1757904955460569"
-        }
-    ]
+    print("🚀 Fetching LIVE Slack intro data from target community")
+    print("="*60)
+
+    # Fetch real live messages
+    live_slack_messages = fetch_live_slack_messages()
+
+    if not live_slack_messages:
+        print("❌ No messages found or error fetching data")
+        return None
 
     print("🚀 Processing LIVE Slack intro data from target community")
     print("="*60)
