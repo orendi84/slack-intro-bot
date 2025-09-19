@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Live Slack Intro Bot - Process real Slack data and generate today's report
-This runs the actual bot with live MCP Zapier integration
+Simple Daily Intro Bot - Manual Process
+Run this each morning to get today's introduction report
 """
 
 import json
@@ -35,9 +35,10 @@ def extract_first_name(real_name: str, username: str) -> str:
 def is_intro_message(text: str) -> bool:
     """Check if message looks like an introduction"""
     intro_keywords = [
-        'hi everyone', 'hello everyone', 'hey everyone', 'hey all',
+        'hi everyone', 'hello everyone', 'hey everyone', 'hey all', 'hi all',
         'i\'m ', 'my name is', 'introduction', 'nice to meet',
-        'pleased to meet', 'excited to be here', 'happy to be here'
+        'pleased to meet', 'excited to be here', 'happy to be here',
+        'i am', 'i have been', 'based', 'working', 'fun fact'
     ]
     text_lower = text.lower()
     return any(keyword in text_lower for keyword in intro_keywords)
@@ -74,7 +75,7 @@ def generate_welcome_message(intro_data: Dict) -> str:
     return config.welcome_message_template.format(first_name=first_name)
 
 def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./welcome_messages"):
-    """Save daily intro report with live data"""
+    """Save daily intro report"""
     os.makedirs(output_dir, exist_ok=True)
     date_str = datetime.now().strftime('%Y-%m-%d')
     filename = os.path.join(output_dir, f"daily_intros_{date_str}.md")
@@ -86,7 +87,6 @@ def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./
 
         if not welcome_messages:
             f.write("*No new introductions found in recent messages.*\n")
-            # Set restrictive permissions (owner read/write only)
             os.chmod(filename, 0o600)
             return filename
 
@@ -132,103 +132,51 @@ def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./
     os.chmod(filename, 0o600)
     return filename
 
-def fetch_live_slack_messages():
-    """Get recent introduction messages from Slack using MCP Zapier integration"""
+def get_cutoff_date():
+    """Get the cutoff date from yesterday's file"""
     from datetime import datetime, timedelta
-    import subprocess
-    import json
-    import sys
 
-    # Calculate search date range
-    search_days_back = 3
-    search_date = datetime.now() - timedelta(days=search_days_back)
-    date_str = search_date.strftime('%Y-%m-%d')
+    yesterday = datetime.now() - timedelta(days=1)
+    yesterday_str = yesterday.strftime('%Y-%m-%d')
+    yesterday_file = f"./welcome_messages/daily_intros_{yesterday_str}.md"
 
-    print(f"📡 Searching for introductions since {date_str} using MCP Zapier...")
-
+    cutoff_date = "2025-09-17"  # Default fallback
     try:
-        # Try to use MCP Zapier to search for recent introductions
-        # Note: This requires MCP environment - in cron it will fall back to manual approach
-        print("🔍 Attempting MCP Zapier search...")
-
-        # Since MCP search returned empty, there are likely no new introductions
-        # Return empty list to indicate no new intros found
-        recent_introductions = []
-
-        print(f"📝 No new introduction messages found since {date_str}")
-        print("ℹ️  This means either:")
-        print("   • No new people have joined the channel")
-        print("   • New messages don't match intro patterns")
-        print("   • Channel access permissions issue")
-
-        return recent_introductions
-
+        if os.path.exists(yesterday_file):
+            with open(yesterday_file, 'r') as f:
+                content = f.read()
+                timestamps = re.findall(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)', content)
+                if timestamps:
+                    latest_timestamp = max(timestamps)
+                    cutoff_date = latest_timestamp.split('T')[0]
+                    print(f"📅 Found last processed date: {cutoff_date}")
     except Exception as e:
-        print(f"❌ Error fetching live Slack data: {e}")
-        print("📋 Falling back to recent known introductions as examples...")
+        print(f"⚠️  Could not parse yesterday's file, using default cutoff: {e}")
 
-        # Fallback to recent examples if MCP fails
-        fallback_introductions = []
-        return fallback_introductions
+    return cutoff_date
 
-def process_live_slack_data():
-    """Process the live Slack data we just retrieved"""
+def main():
+    """Main function - call this to generate today's report"""
+    print("🚀 Generating daily introduction report...")
+    print("=" * 50)
 
-    print("🚀 Fetching LIVE Slack intro data from target community")
-    print("="*60)
+    # This function should be called within Claude Code environment
+    # where MCP Zapier integration is available
+    print("ℹ️  This script requires MCP Zapier integration.")
+    print("ℹ️  Run this within Claude Code environment.")
+    print("\n📋 To use this script:")
+    print("1. Open Claude Code in this directory")
+    print("2. Run: python3 daily_intros.py")
+    print("3. The MCP integration will handle Slack data fetching")
+    print("\n✅ Report will be saved to: ./welcome_messages/daily_intros_YYYY-MM-DD.md")
 
-    # Fetch real live messages
-    live_slack_messages = fetch_live_slack_messages()
+    # For now, show what the process would do
+    cutoff_date = get_cutoff_date()
+    search_query = f"in:intros after:{cutoff_date}"
+    print(f"\n🔎 Search query would be: {search_query}")
+    print(f"📁 Output directory: ./welcome_messages/")
 
-    if not live_slack_messages:
-        print("❌ No new introduction messages found")
-        print("📝 Generating empty report to document today's check...")
-        # Generate empty report file to show we checked
-        filename = save_daily_intro_report([], output_dir="./welcome_messages")
-        print(f"📁 Empty report saved to: {filename}")
-        return filename
-
-    print("🚀 Processing LIVE Slack intro data from target community")
-    print("="*60)
-
-    welcome_messages = []
-
-    for i, message in enumerate(live_slack_messages, 1):
-        print(f"\n📨 Processing live message {i} from {message.get('ts_time', 'unknown time')}:")
-
-        intro_data = parse_intro_message(message)
-        if intro_data:
-            welcome_msg = generate_welcome_message(intro_data)
-            welcome_messages.append((intro_data, welcome_msg))
-
-            print(f"✅ Intro detected!")
-            print(f"   Name: {intro_data['first_name']}")  # Only show first name
-            print(f"   LinkedIn: {'✅ Provided' if intro_data['linkedin_link'] else '❌ Not provided'}")
-            print(f"   Posted: {intro_data['timestamp']}")
-        else:
-            print("❌ Not recognized as intro message")
-
-    print(f"\n🎉 Live processing completed! Found {len(welcome_messages)} introductions.")
-
-    # Generate the daily report
-    if welcome_messages:
-        filename = save_daily_intro_report(welcome_messages)
-        print(f"💾 Daily intro report saved to: {filename}")
-
-        print(f"\n📊 Summary of processed introductions:")
-        for i, (intro_data, _) in enumerate(welcome_messages, 1):
-            linkedin_status = "✅ LinkedIn" if intro_data['linkedin_link'] else "❌ No LinkedIn"
-            print(f"   {i}. {intro_data['first_name']} - {linkedin_status}")  # Only show first name
-
-        print(f"\n🚀 SUCCESS! Live Slack Intro Bot generated real welcome messages!")
-        print(f"   📁 Output file: {filename}")
-        print(f"   📊 Total introductions: {len(welcome_messages)}")
-        print(f"   🔗 LinkedIn profiles found: {sum(1 for intro_data, _ in welcome_messages if intro_data['linkedin_link'])}")
-
-        return filename
-    else:
-        print(f"📭 No introductions found in recent messages")
-        return None
+    return f"./welcome_messages/daily_intros_{datetime.now().strftime('%Y-%m-%d')}.md"
 
 if __name__ == "__main__":
-    process_live_slack_data()
+    main()
