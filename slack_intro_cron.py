@@ -95,6 +95,8 @@ def save_welcome_messages_markdown(welcome_messages: List[tuple], output_dir: st
 
         if not welcome_messages:
             f.write("*No new introductions found today.*\n")
+            # Set restrictive permissions (owner read/write only)
+            os.chmod(filename, 0o600)
             return filename
 
         f.write(f"## Summary\n\n")
@@ -136,6 +138,8 @@ def save_welcome_messages_markdown(welcome_messages: List[tuple], output_dir: st
             if i < len(welcome_messages):
                 f.write("---\n\n")
 
+    # Set restrictive permissions (owner read/write only)
+    os.chmod(filename, 0o600)
     return filename
 
 def main():

@@ -86,6 +86,8 @@ def save_real_data_report(welcome_messages: List[tuple]):
 
         if not welcome_messages:
             f.write("*No new introductions found in recent messages.*\n")
+            # Set restrictive permissions (owner read/write only)
+            os.chmod(filename, 0o600)
             return filename
 
         f.write(f"## Summary\n\n")
@@ -126,6 +128,8 @@ def save_real_data_report(welcome_messages: List[tuple]):
             if i < len(welcome_messages):
                 f.write("---\n\n")
 
+    # Set restrictive permissions (owner read/write only)
+    os.chmod(filename, 0o600)
     return filename
 
 def test_with_real_slack_data():

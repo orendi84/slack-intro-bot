@@ -154,6 +154,8 @@ def test_with_sample_data():
                 if i < len(welcome_messages):
                     f.write("---\n\n")
 
+        # Set restrictive permissions (owner read/write only)
+        os.chmod(filename, 0o600)
         print(f"💾 Test results saved to: {filename}")
 
 if __name__ == "__main__":

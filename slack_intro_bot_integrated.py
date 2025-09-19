@@ -115,18 +115,26 @@ class SlackIntroBotIntegrated:
 
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             if result.returncode == 0:
-                # Parse the JSON response
-                response = json.loads(result.stdout)
-                return response.get('results', [])
+                # Parse the JSON response with validation
+                try:
+                    response = json.loads(result.stdout)
+                    # Validate response structure
+                    if not isinstance(response, dict):
+                        print("Error: Invalid JSON response format")
+                        return []
+                    return response.get('results', [])
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing JSON response: {e}")
+                    return []
+                except Exception as e:
+                    print(f"Error processing API response: {e}")
+                    return []
             else:
                 print(f"Error calling Slack API: {result.stderr}")
                 return []
 
         except subprocess.TimeoutExpired:
             print("Error: Command timed out")
-            return []
-        except json.JSONDecodeError as e:
-            print(f"Error parsing API response: {e}")
             return []
         except Exception as e:
             print(f"Error getting Slack messages: {e}")
@@ -212,6 +220,8 @@ class SlackIntroBotIntegrated:
 
             if not welcome_messages:
                 f.write("*No new introductions found today.*\n")
+                # Set restrictive permissions (owner read/write only)
+                os.chmod(filename, 0o600)
                 return filename
 
             f.write(f"## Summary\n\n")
@@ -242,16 +252,20 @@ class SlackIntroBotIntegrated:
                 f.write(welcome_msg)
                 f.write("\n```\n\n")
 
-                # Original intro section
+                # Original intro section (sanitized for privacy)
                 f.write("### 📝 Original Introduction\n\n")
                 f.write("> ")
-                formatted_intro = intro_data['message_text'].replace('\n', '\n> ')
+                # Truncate and sanitize message text to protect privacy
+                sanitized_intro = intro_data['message_text'][:100] + "..." if len(intro_data['message_text']) > 100 else intro_data['message_text']
+                formatted_intro = sanitized_intro.replace('\n', '\n> ')
                 f.write(formatted_intro)
                 f.write("\n\n")
 
                 if i < len(welcome_messages):
                     f.write("---\n\n")
 
+        # Set restrictive permissions (owner read/write only)
+        os.chmod(filename, 0o600)
         print(f"💾 Welcome messages saved to: {filename}")
 
     def run_once(self):

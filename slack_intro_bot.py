@@ -152,6 +152,9 @@ class SlackIntroBot:
             f.write(f"LinkedIn: {intro_data['linkedin_link'] or 'Not provided'}\n")
             f.write(f"Message:\n{welcome_msg}\n")
             f.write(f"Original intro:\n{intro_data['message_text'][:200]}...\n")
+        
+        # Set restrictive permissions (owner read/write only)
+        os.chmod(filename, 0o600)
 
     def start_scheduler(self):
         """Start the daily scheduler"""
