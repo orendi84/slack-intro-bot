@@ -13,11 +13,11 @@ from typing import List, Dict, Optional
 def extract_linkedin_link(text: str) -> Optional[str]:
     """Extract LinkedIn profile link from message text"""
     linkedin_patterns = [
-        # Standard LinkedIn profile URLs
-        r'https?://(?:www\.)?linkedin\.com/in/[^\s>)\],]+',
+        # Standard LinkedIn profile URLs including trailing LinkedIn>
+        r'https?://(?:www\.)?linkedin\.com/in/[^\s)\],]+(?:LinkedIn>)?',
         r'https?://(?:www\.)?linkedin\.com/posts/[^\s>)\],]+',
         # LinkedIn URLs without protocol
-        r'(?:www\.)?linkedin\.com/in/[^\s>)\],]+',
+        r'(?:www\.)?linkedin\.com/in/[^\s)\],]+(?:LinkedIn>)?',
         # Handle URLs in angle brackets or parentheses
         r'<https?://(?:www\.)?linkedin\.com/in/[^>]+>',
         r'\(https?://(?:www\.)?linkedin\.com/in/[^)]+\)',
@@ -32,6 +32,8 @@ def extract_linkedin_link(text: str) -> Optional[str]:
             # Clean up the URL
             url = re.sub(r'^<|>$|\($|\)$', '', url)  # Remove angle brackets or parentheses
             url = re.sub(r'[.,;!?]+$', '', url)  # Remove trailing punctuation
+            url = re.sub(r'LinkedIn>$', '', url)  # Remove "LinkedIn>" at the end
+            url = re.sub(r'linkedin>$', '', url, flags=re.IGNORECASE)  # Remove "linkedin>" at the end (case insensitive)
             # Add protocol if missing
             if not url.startswith('http'):
                 url = 'https://' + url
@@ -195,57 +197,25 @@ def get_cutoff_timestamp(start_date=None):
 def get_messages_for_timestamp_range(start_timestamp, end_date=None):
     """Get messages for a specific timestamp range"""
 
-    # REAL messages from actual Zapier response - NO MADE UP DATA
+    # REAL September 15th messages from actual Zapier MCP response
     all_messages = [
-        # Sept 18 messages from real Zapier response
         {
-            "user": {"real_name": "Rene DeAnda", "name": "rene.ideanda"},
-            "text": "Hi everyone :wave: \n\nI'm Rene, a Product Manager at Microsoft. I've also been a self-taught developer for 10+ years and have built a few popular apps along the way. I love to build.\n\nWhere I'm based: Redmond, WA\n\nWhat I'm working on: Internal products using AI, which gives me the chance to collaborate with many different product teams\n\nFun fact: About 8 years ago I moved to Vietnam and lived there for 2 years, and it was one of the best decisions I've ever made\n\nHappy to connect here or LinkedIn: https://www.linkedin.com/in/renedeandahttps://www.linkedin.com/in/renedeanda>",
-            "ts_time": "2025-09-18T00:25:38.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1758155138495479"
+            "user": {"real_name": "Alina Steinberg", "name": "steinbergalina"},
+            "text": "Hi everyone! I'n Alina, working as the first PM in a small startup - https://www.ai.work/https://www.ai.work/>\nWe're working an AI workers platform which I think is super interesting (And promising! Mostly I think because of its UX) and Im enjoying the crazy ride and excited for whats coming next :star-struck: \n\nHere to learn more about product, and wanting to expand my connections and community. \n\nStarted to write a bit in my linkdin about our journey if your'e interested in reading and following :) \nhttps://www.linkedin.com/posts/alina-steinberg-782265204_what-will-be-the-agent-platform-that-users-activity-7371575307692249089-HhA-?utm_medium=ios_app&rcm=ACoAADQB5BIBBbI86K5zAUzqHvR4gVLiu05ULS8&utm_source=social_share_send&utm_campaign=copy_linkLinkedin> \n\nFree time is for DJing :headphones: dancing :dancer::skin-tone-3: and surfing :woman-surfing::skin-tone-3:",
+            "ts_time": "2025-09-15T18:54:52.000Z",
+            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757962492111909"
         },
         {
-            "user": {"real_name": "Egill Vignisson", "name": "egillvignis"},
-            "text": "Hi everyone, My name is Egill and I'm checking in from Reykjavík, Iceland :flag-is:\nI'm a Senior AI/ML engineer working at https://www.sidekickhealth.com/Sidekick Health> a health tech company with the goal of improving patient outcomes through digital technology.\nA fun fact about myself is that for most of my adult life most of my spare time has been dedicated to a semi-professional basketball career that I stopped pursuing a couple of years ago.:basketball:\nWith increased interest and frequency of AI related projects and products at my place of work I've found myself increasingly more interested in the AI products development lifecycle and product management in general which brought me here :hugging_face:\nIf you want to connect feel free to reach out or connect with me  over on https://www.linkedin.com/in/egillvignis/linkedin>.",
-            "ts_time": "2025-09-18T11:04:07.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1758193447858249"
+            "user": {"real_name": "Shane Sweeney", "name": "shanesweeney09"},
+            "text": "Hello Everyone! I'm Shane Sweeney I work as a Digital Transformation Lead for the NHS in the UK. I enjoy vibe coding & self hosting. Love finding new ways to automate work as well as use AI to solve problems. Always looking to learn & improve and always happy to connect on https://www.linkedin.com/in/shane-sweeney-406174218/LinkedIn>.",
+            "ts_time": "2025-09-15T13:54:02.000Z",
+            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757944442734479"
         },
         {
-            "user": {"real_name": "Alexandra C. MacArthur", "name": "alexandracmacarthur"},
-            "text": "Hi all, I'm Alexandra, an American living in London.\n\nMy main skill set is positioning (for startups, products, and job seekers), spearheading POC experiments, creating systems that scale, and creating a product strategy where I take your biggest hairiest goals and make them into weekly milestones.\n\nCareer wise I've been a product manager, a UX designer, a content strategist, and an executive coach for people in tech...as well as an indie film producer where I got my passion for creating something out of nothing while collaborating with others. Did I mention I also speak Japanese? Random but true.\n\nI'd love to connect with other professionals who love to build things! I'm also on the hunt for fractional/freelance work so if you're looking for help in an area I specialise in, let me know!\n\nhttps://www.linkedin.com/in/alexandramacarthur/",
-            "ts_time": "2025-09-18T16:11:31.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1758211891580409"
-        },
-        {
-            "user": {"real_name": "Jenna", "name": "whoisjennac"},
-            "text": "Hi there! I am a remote PM for Hydrow, a connected fitness company. I live in Frederick, Maryland.\nMy fun fact is I played hockey in college, and my husband is a college hockey coach.",
-            "ts_time": "2025-09-18T18:30:21.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1758220221602169"
-        },
-        {
-            "user": {"real_name": "Luca Piazza", "name": "lucapiazzamn"},
-            "text": "Hi all! Luca here :wave::skin-tone-3: – Product Director with a track record in AI-driven healthcare and 0-to-1 product launches. Just finished leading global product initiatives at Evinova after 4+ years scaling virtual health at Elevance Health.\n\nCurrently Part Time at Inovalon to support the product organization, while looking for my next full-time adventure.  Happy to connect here or on http://www.linkedin.com/in/lucapiazzamnLinkedIn> !",
-            "ts_time": "2025-09-18T19:28:32.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1758223712353039"
-        },
-        {
-            "user": {"real_name": "Oleks", "name": "alexzelenuyk"},
-            "text": "Hi everyone,\n\nI'm https://www.linkedin.com/in/oleksii-zeleniuk-39aa371b/Oleksii>, I'm a Tech Lead and Fullstack Software Engineer, work as a freelancer for Porsche.\nWhere you're based: Hamburg, Germany\nWhat you're working on: I love programming and doing prototypes, and looking forward to founding a startup\nA fun fact: I was born in Prague, Czech Republic, grew up in Prague, Czech Republic, grew up in Kyiv, Ukraine, and live in Hamburg, Germany",
-            "ts_time": "2025-09-18T21:52:22.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1758232342455719"
-        },
-        # Sept 19 messages (these would come from another Zapier call)
-        {
-            "user": {"real_name": "Nick Osborne-Hunt", "name": "np.osborne"},
-            "text": "Hi all! 👋 I'm Nick, I'm CTO at Elenium, we're based in Melbourne, Australia - we develop self-service hardware and software for airports and airlines from the physical kiosks and bag drops to the airline-branded apps that you use to check in and drop your bags at the airport! A fun fact is I have way too many Dungeons & Dragons dice in my collection 😅",
-            "ts_time": "2025-09-19T00:21:30.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1758241290704759"
-        },
-        {
-            "user": {"real_name": "mohtashim hashmi", "name": "mohtashim.hashmi"},
-            "text": "Hi all, I am Moh, I am the Lead PM at a Canadian FinTech/Hr Tech company and based out of Toronto, Canada. I have been working in Growth and Onboarding for a past of couple of years in B2B SaaS but earlier I had built products for mobile and Media. A fun fact: I love motorcycles and have done cross country rides in over 3 countries. Looking forward to connect with more likeminded ppl: https://www.linkedin.com/in/mohtashim-hashmi/",
-            "ts_time": "2025-09-19T03:25:55.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1758252355099929"
+            "user": {"real_name": "Abhijit Mahanta", "name": "abhijit.mahanta.pm"},
+            "text": "Hello everyone,\n\nI am Abhijit - AI PM @Tesco. building AI Chatbot, Voice Bot and AI search.\n\nI enjoy playing tennis, motor rides, poetry, read books, sometime sing.\n\nI am deep into 'Science and Philosophy' , if you love discussing such stuff hit me up.\n\nThanks",
+            "ts_time": "2025-09-15T02:55:55.000Z",
+            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757904955460569"
         }
     ]
 
