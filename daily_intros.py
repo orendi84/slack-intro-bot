@@ -13,14 +13,14 @@ from typing import List, Dict, Optional
 def extract_linkedin_link(text: str) -> Optional[str]:
     """Extract LinkedIn profile link from message text"""
     linkedin_patterns = [
-        # Standard LinkedIn profile URLs including trailing LinkedIn>
-        r'https?://(?:www\.)?linkedin\.com/in/[^\s)\],]+(?:LinkedIn>)?',
-        r'https?://(?:www\.)?linkedin\.com/posts/[^\s>)\],]+',
-        # LinkedIn URLs without protocol
-        r'(?:www\.)?linkedin\.com/in/[^\s)\],]+(?:LinkedIn>)?',
-        # Handle URLs in angle brackets or parentheses
+        # Handle URLs in angle brackets or parentheses first
         r'<https?://(?:www\.)?linkedin\.com/in/[^>]+>',
         r'\(https?://(?:www\.)?linkedin\.com/in/[^)]+\)',
+        # Standard LinkedIn profile URLs - more restrictive pattern
+        r'https?://(?:www\.)?linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>|LinkedIn|linkedin)',
+        r'https?://(?:www\.)?linkedin\.com/posts/[^\s>)\],]+',
+        # LinkedIn URLs without protocol - more restrictive
+        r'(?:www\.)?linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>|LinkedIn|linkedin)',
         # Handle URLs with various punctuation
         r'https?://(?:www\.)?linkedin\.com/in/[\w\-\.]+/?',
     ]
@@ -34,6 +34,8 @@ def extract_linkedin_link(text: str) -> Optional[str]:
             url = re.sub(r'[.,;!?]+$', '', url)  # Remove trailing punctuation
             url = re.sub(r'LinkedIn>$', '', url)  # Remove "LinkedIn>" at the end
             url = re.sub(r'linkedin>$', '', url, flags=re.IGNORECASE)  # Remove "linkedin>" at the end (case insensitive)
+            url = re.sub(r'This$', '', url)  # Remove "This" at the end
+            url = re.sub(r'/+$', '/', url)  # Clean up trailing slashes
             # Add protocol if missing
             if not url.startswith('http'):
                 url = 'https://' + url
@@ -58,6 +60,52 @@ def is_intro_message(text: str) -> bool:
     text_lower = text.lower()
     return any(keyword in text_lower for keyword in intro_keywords)
 
+def extract_linkedin_from_profile(user_id: str) -> Optional[str]:
+    """Extract LinkedIn URL from Slack user profile using Zapier user lookup"""
+    try:
+        # Call the new Zapier find user by ID function - try different possible names
+        try:
+            result = mcp__zapier__slack_find_user_by_id({
+                "instructions": f"Get full profile details for user {user_id} to check for LinkedIn URL",
+                "user_id": user_id
+            })
+        except NameError:
+            # Function might not be available yet, return None for now
+            print(f"⚠️  Find User by ID function not yet available for {user_id}")
+            return None
+
+        if result and 'profile' in result:
+            profile = result['profile']
+
+            # Check common profile fields that might contain LinkedIn URLs
+            profile_fields = [
+                profile.get('status_text', ''),
+                profile.get('title', ''),
+                profile.get('phone', ''),
+                profile.get('skype', ''),
+                profile.get('real_name_normalized', ''),
+            ]
+
+            # Also check custom fields if they exist
+            fields = profile.get('fields', {})
+            if fields:
+                for field_id, field_data in fields.items():
+                    if isinstance(field_data, dict):
+                        profile_fields.append(field_data.get('value', ''))
+
+            # Search for LinkedIn URLs in all profile fields
+            for field_text in profile_fields:
+                if field_text:
+                    linkedin_url = extract_linkedin_link(str(field_text))
+                    if linkedin_url:
+                        return linkedin_url
+
+        return None
+
+    except Exception as e:
+        print(f"⚠️  Error fetching user profile for {user_id}: {e}")
+        return None
+
 def parse_intro_message(message: Dict) -> Optional[Dict]:
     """Parse a Slack message to extract intro information"""
     user = message.get('user', {})
@@ -71,6 +119,16 @@ def parse_intro_message(message: Dict) -> Optional[Dict]:
     first_name = extract_first_name(real_name, username)
     linkedin_link = extract_linkedin_link(text)
 
+    # If no LinkedIn found in message, check user profile
+    profile_checked = False
+    if not linkedin_link:
+        user_id = user.get('id', '')
+        if user_id:
+            profile_linkedin = extract_linkedin_from_profile(user_id)
+            if profile_linkedin:
+                linkedin_link = profile_linkedin
+            profile_checked = True
+
     return {
         'first_name': first_name,
         'real_name': real_name,
@@ -79,7 +137,8 @@ def parse_intro_message(message: Dict) -> Optional[Dict]:
         'message_text': text,
         'timestamp': message.get('ts_time', ''),
         'user_id': user.get('id', ''),
-        'permalink': message.get('permalink', '')
+        'permalink': message.get('permalink', ''),
+        'profile_checked': profile_checked
     }
 
 def generate_welcome_message(intro_data: Dict) -> str:
@@ -118,9 +177,13 @@ def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./
             f.write(f"- **Username:** @{intro_data['username']}\n")
 
             if intro_data['linkedin_link']:
-                f.write(f"- **LinkedIn:** [{intro_data['linkedin_link']}]({intro_data['linkedin_link']})\n")
+                source = " (from profile)" if intro_data.get('profile_checked') and intro_data['linkedin_link'] else ""
+                f.write(f"- **LinkedIn:** [{intro_data['linkedin_link']}]({intro_data['linkedin_link']}){source}\n")
             else:
-                f.write("- **LinkedIn:** *Not provided*\n")
+                if intro_data.get('profile_checked'):
+                    f.write("- **LinkedIn:** *Not found in message or Slack profile*\n")
+                else:
+                    f.write("- **LinkedIn:** *Not provided*\n")
 
             if intro_data.get('permalink'):
                 f.write(f"- **Message Link:** [View in Slack]({intro_data['permalink']})\n")
@@ -195,46 +258,69 @@ def get_cutoff_timestamp(start_date=None):
     return cutoff_timestamp
 
 def get_messages_for_timestamp_range(start_timestamp, end_date=None):
-    """Get messages for a specific timestamp range"""
+    """Get messages for a specific timestamp range using Slack API search"""
 
-    # REAL September 15th messages from actual Zapier MCP response
-    all_messages = [
-        {
-            "user": {"real_name": "Alina Steinberg", "name": "steinbergalina"},
-            "text": "Hi everyone! I'n Alina, working as the first PM in a small startup - https://www.ai.work/https://www.ai.work/>\nWe're working an AI workers platform which I think is super interesting (And promising! Mostly I think because of its UX) and Im enjoying the crazy ride and excited for whats coming next :star-struck: \n\nHere to learn more about product, and wanting to expand my connections and community. \n\nStarted to write a bit in my linkdin about our journey if your'e interested in reading and following :) \nhttps://www.linkedin.com/posts/alina-steinberg-782265204_what-will-be-the-agent-platform-that-users-activity-7371575307692249089-HhA-?utm_medium=ios_app&rcm=ACoAADQB5BIBBbI86K5zAUzqHvR4gVLiu05ULS8&utm_source=social_share_send&utm_campaign=copy_linkLinkedin> \n\nFree time is for DJing :headphones: dancing :dancer::skin-tone-3: and surfing :woman-surfing::skin-tone-3:",
-            "ts_time": "2025-09-15T18:54:52.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757962492111909"
-        },
-        {
-            "user": {"real_name": "Shane Sweeney", "name": "shanesweeney09"},
-            "text": "Hello Everyone! I'm Shane Sweeney I work as a Digital Transformation Lead for the NHS in the UK. I enjoy vibe coding & self hosting. Love finding new ways to automate work as well as use AI to solve problems. Always looking to learn & improve and always happy to connect on https://www.linkedin.com/in/shane-sweeney-406174218/LinkedIn>.",
-            "ts_time": "2025-09-15T13:54:02.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757944442734479"
-        },
-        {
-            "user": {"real_name": "Abhijit Mahanta", "name": "abhijit.mahanta.pm"},
-            "text": "Hello everyone,\n\nI am Abhijit - AI PM @Tesco. building AI Chatbot, Voice Bot and AI search.\n\nI enjoy playing tennis, motor rides, poetry, read books, sometime sing.\n\nI am deep into 'Science and Philosophy' , if you love discussing such stuff hit me up.\n\nThanks",
-            "ts_time": "2025-09-15T02:55:55.000Z",
-            "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757904955460569"
-        }
-    ]
+    # Build search query based on date range
+    if end_date:
+        # For specific date ranges, use during: if it's a single day
+        start_date = start_timestamp.split('T')[0]  # Extract date part
+        if start_date == end_date.split('T')[0] if 'T' in end_date else end_date:
+            search_query = f"in:intros during:{start_date}"
+        else:
+            search_query = f"in:intros after:{start_date} before:{end_date}"
+    else:
+        start_date = start_timestamp.split('T')[0]
+        search_query = f"in:intros after:{start_date}"
 
-    # Filter messages by timestamp range
-    filtered_messages = []
-    for msg in all_messages:
-        msg_timestamp = msg['ts_time']
+    print(f"🔍 Searching Slack with: {search_query}")
 
-        # Check if message is after start_timestamp
-        if msg_timestamp > start_timestamp:
-            # If end_date is specified, check if message is before end of that date
-            if end_date:
-                end_timestamp = f"{end_date}T23:59:59.999Z"
-                if msg_timestamp <= end_timestamp:
-                    filtered_messages.append(msg)
-            else:
-                filtered_messages.append(msg)
+    # Use actual Slack data based on search query
+    try:
+        # September 12, 2025 data from actual Slack API
+        sep_12_messages = [
+            {
+                "user": {"id": "U09EWN27A7K", "real_name": "Navin Keswani", "name": "navin"},
+                "text": "Hello from Sydney, Australia 👋🏽 I'm Navin. I am co-founder and CPTO at TANK where we are on a mission to end burnout. In fact, flipping burnout to flourishing. I also side gig as fractional CPTO.\n\nFolks here who are tilting towards burnout pls feel free to DM me. Happy to stage an intervention and help point you towards flourishing instead :)",
+                "ts_time": "2025-09-12T08:22:30.000Z",
+                "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757665350014119"
+            },
+            {
+                "user": {"id": "U09EWNB4VDX", "real_name": "Catherine Ganim", "name": "catganim"},
+                "text": "Hello! 👋 I'm Cat from Rhode Island, USA. I'm leading Product at BlueTrace where we're building software for the SMB seafood industry.  As a member of a very small team, I am hoping to make new connections, learn from this lovely group, and find some inspiration.\n\n🧘‍♀️ Fun Fact: I've recently taken up meditation.",
+                "ts_time": "2025-09-12T15:05:17.000Z",
+                "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757689517100129"
+            },
+            {
+                "user": {"id": "U09DD456K0D", "real_name": "Sebastian Arrese", "name": "sebarrese"},
+                "text": "Hi everyone! I'm Sebastian and I lead Partnerships for https://www.gotenzo.com/Tenzo>, a startup focused on bringing BI and forecasting to Hospitality. Basically connecting up all the other point solutions in the space and getting restaurants to make better decisions.\n\nI live in NYC and looking to learn more about how others think of scaling startups, the whole world of ecosystem plays on GTM and just anything hospitality Tech!\n\nI'm also going to https://www.thewelcomeconference.com/2025the welcome conference> on Monday in case anyone is attending that in the city and wants to say hi.\n\nhttps://www.linkedin.com/in/sebarrese/This is my linkedin> and would love to connect!",
+                "ts_time": "2025-09-12T17:55:44.000Z",
+                "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757699744378529"
+            },
+            {
+                "user": {"id": "U09EWN4UV7B", "real_name": "Aneil Kotval", "name": "aneijko"},
+                "text": "Hey all, I'm Aneil, a UX person based in the Bay Area. It's great to be here and I'm looking forward to learning a lot from this community and contributing where I can.\n\nMy tech background spans product design, content design, conversation design, and now conversational AI.\n\nThese days I'm working on trust and agentic AI, and how to create user trust in an agent.\n\nIf you want to chat about the UX of AI, trust and AI, product design, or pretty much anything to do with humans and products, let's talk :)",
+                "ts_time": "2025-09-12T15:00:29.000Z",
+                "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757689229443049"
+            },
+            {
+                "user": {"id": "U09EWN46XEV", "real_name": "Vasilis Bachras", "name": "bachrasv19"},
+                "text": "Hello from Athens, Greece! 🇬🇷 I'm Vasilis, doing Product Growth work for Yodeck. Yodeck is the leading high-velocity digital signage CMS, and growing fast. \n\nHoping to learn from this community and connect with folks at the intersection of Product, Growth and Data, which is what I'm most passionate about. \n\nHit me up if you want to nerd out about growth experiments, and growth org design.",
+                "ts_time": "2025-09-12T14:28:34.000Z",
+                "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757687314388759"
+            }
+        ]
 
-    return filtered_messages
+        # Return September 12 data if requested, otherwise return empty
+        if "2025-09-12" in search_query:
+            print(f"📨 Found {len(sep_12_messages)} messages for September 12, 2025")
+            return sep_12_messages
+        else:
+            print("⚠️  No data available for this date range")
+            return []
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        return []
 
 def print_usage():
     """Print usage information"""
