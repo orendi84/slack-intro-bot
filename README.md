@@ -7,7 +7,11 @@ A simple tool to generate daily introduction reports from Slack using Claude Cod
 1. **Open Claude Code** in this directory
 2. **Run the script:**
    ```bash
+   # Auto-detect today's new introductions
    python3 daily_intros.py
+
+   # Or specify date range
+   python3 daily_intros.py 2025-09-17 2025-09-18 2025-09-18
    ```
 3. **Get your report** in `./welcome_messages/daily_intros_YYYY-MM-DD.md`
 
@@ -48,12 +52,35 @@ Each report includes:
 - Original introduction text
 - Slack message links
 
-## Daily Usage
+## Usage Options
 
-Run once per day to get new introductions. The script automatically:
-- Finds the last processed date from yesterday's file
-- Only includes new introductions
-- Avoids duplicates across daily files
+### Auto-detect (Daily Use)
+```bash
+python3 daily_intros.py
+```
+Automatically finds new introductions since yesterday's last processed message.
+
+### Specific Date Range
+```bash
+python3 daily_intros.py START_DATE [END_DATE] [OUTPUT_DATE]
+```
+
+**Examples:**
+```bash
+# Get all messages after 2025-09-17
+python3 daily_intros.py 2025-09-17
+
+# Get messages from Sept 18 only
+python3 daily_intros.py 2025-09-17 2025-09-18
+
+# Get Sept 18 messages, save as Sept 18 report
+python3 daily_intros.py 2025-09-17 2025-09-18 2025-09-18
+```
+
+**Parameters:**
+- `START_DATE`: Messages after this date (YYYY-MM-DD)
+- `END_DATE`: Messages up to this date (optional)
+- `OUTPUT_DATE`: Date for output filename (optional, defaults to today)
 
 ## File Structure
 
