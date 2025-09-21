@@ -259,67 +259,69 @@ def get_cutoff_timestamp(start_date=None):
 
 def get_messages_for_timestamp_range(start_timestamp, end_date=None):
     """Get messages for a specific timestamp range using Slack API search"""
+    from datetime import datetime, timedelta
 
-    # Build search query based on date range
+    # Build search query based on date range with proper date arithmetic
     if end_date:
-        # For specific date ranges, use during: if it's a single day
+        # For specific date ranges, adjust dates to include the target date
         start_date = start_timestamp.split('T')[0]  # Extract date part
         if start_date == end_date.split('T')[0] if 'T' in end_date else end_date:
             search_query = f"in:intros during:{start_date}"
         else:
-            search_query = f"in:intros after:{start_date} before:{end_date}"
+            # Convert to datetime objects for proper date arithmetic
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            end_dt = datetime.strptime(end_date.split('T')[0] if 'T' in end_date else end_date, '%Y-%m-%d')
+
+            # Adjust dates: start_date-1 and end_date+2
+            adjusted_start = (start_dt - timedelta(days=1)).strftime('%Y-%m-%d')
+            adjusted_end = (end_dt + timedelta(days=2)).strftime('%Y-%m-%d')
+
+            search_query = f"in:intros after:{adjusted_start} before:{adjusted_end}"
     else:
         start_date = start_timestamp.split('T')[0]
-        search_query = f"in:intros after:{start_date}"
+        # For open-ended searches, subtract 1 day from start
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        adjusted_start = (start_dt - timedelta(days=1)).strftime('%Y-%m-%d')
+        search_query = f"in:intros after:{adjusted_start}"
 
     print(f"🔍 Searching Slack with: {search_query}")
 
-    # Use actual Slack data based on search query
+    # Use actual Slack API search via MCP Zapier
     try:
-        # September 12, 2025 data from actual Slack API
-        sep_12_messages = [
-            {
-                "user": {"id": "U09EWN27A7K", "real_name": "Navin Keswani", "name": "navin"},
-                "text": "Hello from Sydney, Australia 👋🏽 I'm Navin. I am co-founder and CPTO at TANK where we are on a mission to end burnout. In fact, flipping burnout to flourishing. I also side gig as fractional CPTO.\n\nFolks here who are tilting towards burnout pls feel free to DM me. Happy to stage an intervention and help point you towards flourishing instead :)",
-                "ts_time": "2025-09-12T08:22:30.000Z",
-                "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757665350014119"
-            },
-            {
-                "user": {"id": "U09EWNB4VDX", "real_name": "Catherine Ganim", "name": "catganim"},
-                "text": "Hello! 👋 I'm Cat from Rhode Island, USA. I'm leading Product at BlueTrace where we're building software for the SMB seafood industry.  As a member of a very small team, I am hoping to make new connections, learn from this lovely group, and find some inspiration.\n\n🧘‍♀️ Fun Fact: I've recently taken up meditation.",
-                "ts_time": "2025-09-12T15:05:17.000Z",
-                "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757689517100129"
-            },
-            {
-                "user": {"id": "U09DD456K0D", "real_name": "Sebastian Arrese", "name": "sebarrese"},
-                "text": "Hi everyone! I'm Sebastian and I lead Partnerships for https://www.gotenzo.com/Tenzo>, a startup focused on bringing BI and forecasting to Hospitality. Basically connecting up all the other point solutions in the space and getting restaurants to make better decisions.\n\nI live in NYC and looking to learn more about how others think of scaling startups, the whole world of ecosystem plays on GTM and just anything hospitality Tech!\n\nI'm also going to https://www.thewelcomeconference.com/2025the welcome conference> on Monday in case anyone is attending that in the city and wants to say hi.\n\nhttps://www.linkedin.com/in/sebarrese/This is my linkedin> and would love to connect!",
-                "ts_time": "2025-09-12T17:55:44.000Z",
-                "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757699744378529"
-            },
-            {
-                "user": {"id": "U09EWN4UV7B", "real_name": "Aneil Kotval", "name": "aneijko"},
-                "text": "Hey all, I'm Aneil, a UX person based in the Bay Area. It's great to be here and I'm looking forward to learning a lot from this community and contributing where I can.\n\nMy tech background spans product design, content design, conversation design, and now conversational AI.\n\nThese days I'm working on trust and agentic AI, and how to create user trust in an agent.\n\nIf you want to chat about the UX of AI, trust and AI, product design, or pretty much anything to do with humans and products, let's talk :)",
-                "ts_time": "2025-09-12T15:00:29.000Z",
-                "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757689229443049"
-            },
-            {
-                "user": {"id": "U09EWN46XEV", "real_name": "Vasilis Bachras", "name": "bachrasv19"},
-                "text": "Hello from Athens, Greece! 🇬🇷 I'm Vasilis, doing Product Growth work for Yodeck. Yodeck is the leading high-velocity digital signage CMS, and growing fast. \n\nHoping to learn from this community and connect with folks at the intersection of Product, Growth and Data, which is what I'm most passionate about. \n\nHit me up if you want to nerd out about growth experiments, and growth org design.",
-                "ts_time": "2025-09-12T14:28:34.000Z",
-                "permalink": "https://lennysnewsletter.slack.com/archives/C0142RHUS4Q/p1757687314388759"
-            }
-        ]
+        result = mcp__zapier__slack_find_message({
+            "instructions": f"Search for introduction messages in the intros channel using query: {search_query}",
+            "query": search_query,
+            "sort_by": "timestamp",
+            "sort_dir": "desc"
+        })
 
-        # Return September 12 data if requested, otherwise return empty
-        if "2025-09-12" in search_query:
-            print(f"📨 Found {len(sep_12_messages)} messages for September 12, 2025")
-            return sep_12_messages
+        if result and 'results' in result:
+            messages = []
+            for msg in result['results']:
+                # Convert Zapier message format to our expected format
+                message = {
+                    "user": {
+                        "id": msg['user']['id'],
+                        "real_name": msg['user']['real_name'],
+                        "name": msg['user']['name']
+                    },
+                    "text": msg.get('raw_text', msg.get('text', '')),
+                    "ts_time": msg['ts_time'],
+                    "permalink": msg['permalink']
+                }
+                messages.append(message)
+
+            print(f"📨 Found {len(messages)} messages from Slack API")
+            return messages
         else:
-            print("⚠️  No data available for this date range")
+            print("⚠️  No messages found in API response")
             return []
 
+    except NameError:
+        print("❌ Slack search function not available")
+        return []
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Error searching Slack: {e}")
         return []
 
 def print_usage():
