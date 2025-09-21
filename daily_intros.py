@@ -306,6 +306,8 @@ def get_messages_for_timestamp_range(start_timestamp, end_date=None):
 
     except NameError:
         print("❌ Slack search function not available")
+        print("💡 This usually means MCP Zapier server is not connected")
+        print("💡 Check your MCP server configuration and Zapier integration")
         return []
     except Exception as e:
         print(f"❌ Error searching Slack: {e}")

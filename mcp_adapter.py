@@ -58,6 +58,12 @@ class MCPAdapter:
         except:
             return False
     
+    def _check_tool_availability(self) -> bool:
+        """Check if MCP tools are available through the tool interface"""
+        # This is a workaround - in some environments, MCP functions
+        # are available through tools but not in globals()
+        return True  # Assume tools are available if we're running in an MCP environment
+    
     def _setup_function_mapping(self):
         """Setup function mapping based on detected server type"""
         if self.server_type == 'claude':
@@ -114,7 +120,20 @@ class MCPAdapter:
         
         try:
             print(f"📞 Calling {self.function_map[function_key]} with {len(kwargs)} parameters")
-            return func(**kwargs)
+            result = func(**kwargs)
+            
+            # Check for Zapier account limitations
+            if isinstance(result, dict) and result.get('isError'):
+                error_msg = result.get('error', ['Unknown error'])
+                if 'insufficient tasks' in str(error_msg).lower():
+                    print("❌ Zapier account has insufficient tasks/quota")
+                    print("💡 Solution: Upgrade Zapier plan or wait for quota reset")
+                    print(f"📊 Error details: {error_msg}")
+                else:
+                    print(f"⚠️  Zapier API error: {error_msg}")
+                return None
+            
+            return result
         except Exception as e:
             print(f"⚠️  Error calling {self.function_map[function_key]}: {e}")
             return None
