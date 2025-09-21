@@ -9,6 +9,7 @@ It's called as a fallback when LinkedIn links are not found in message content.
 import re
 import signal
 from typing import Optional, Dict
+from mcp_adapter import get_mcp_adapter
 
 def extract_linkedin_link(text: str) -> Optional[str]:
     """Extract LinkedIn URL from text using regex"""
@@ -60,18 +61,20 @@ def search_user_profile_for_linkedin(user_id: str, timeout_seconds: int = 30) ->
         
         print(f"🔍 Searching profile details for user: {user_id}")
         
-        # Try to get user profile using Zapier MCP
+        # Try to get user profile using Zapier MCP (auto-detected server)
         try:
-            result = mcp_Zapier_slack_find_user_by_id({
-                "instructions": f"Get full profile details for user {user_id} to check for LinkedIn URL",
-                "user_id": user_id
-            })
-            print(f"✅ Successfully retrieved profile for user {user_id}")
-        except NameError as e:
-            print(f"⚠️  mcp_Zapier_slack_find_user_by_id function not available: {e}")
-            return None
+            mcp = get_mcp_adapter()
+            result = mcp.slack_find_user_by_id(
+                instructions=f"Get full profile details for user {user_id} to check for LinkedIn URL",
+                user_id=user_id
+            )
+            if result:
+                print(f"✅ Successfully retrieved profile for user {user_id}")
+            else:
+                print(f"⚠️  No profile data returned for user {user_id}")
+                return None
         except Exception as e:
-            print(f"⚠️  Error calling mcp_Zapier_slack_find_user_by_id: {e}")
+            print(f"⚠️  Error calling MCP function for user {user_id}: {e}")
             return None
         
         if not result or 'profile' not in result:
@@ -131,12 +134,13 @@ def search_user_profile_for_linkedin(user_id: str, timeout_seconds: int = 30) ->
         # Fallback: Try to get user info from recent messages
         print(f"🔄 Trying fallback: search for recent messages from user {user_id}")
         try:
-            fallback_result = mcp_Zapier_slack_find_message({
-                "instructions": f"Find recent messages from user {user_id} to extract profile information",
-                "query": f"from:{user_id}",
-                "sort_by": "timestamp",
-                "sort_dir": "desc"
-            })
+            mcp = get_mcp_adapter()
+            fallback_result = mcp.slack_find_message(
+                instructions=f"Find recent messages from user {user_id} to extract profile information",
+                query=f"from:{user_id}",
+                sort_by="timestamp",
+                sort_dir="desc"
+            )
             
             if fallback_result and 'results' in fallback_result and fallback_result['results']:
                 # Get the most recent message from this user
@@ -195,10 +199,11 @@ def search_user_profile_for_linkedin_with_fallback(user_id: str, username: str =
         if username and username != user_id:
             print(f"🔄 Trying username-based search: {username}")
             try:
-                result = mcp_Zapier_slack_find_user_by_username({
-                    "instructions": f"Get profile details for username {username} to check for LinkedIn URL",
-                    "username": username
-                })
+                mcp = get_mcp_adapter()
+                result = mcp.slack_find_user_by_username(
+                    instructions=f"Get profile details for username {username} to check for LinkedIn URL",
+                    username=username
+                )
                 
                 if result and 'profile' in result:
                     profile = result['profile']

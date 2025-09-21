@@ -10,6 +10,7 @@ import os
 from datetime import datetime
 from typing import List, Dict, Optional
 from user_profile_search import search_user_profile_for_linkedin_with_fallback
+from mcp_adapter import get_mcp_adapter
 
 def extract_linkedin_link(text: str) -> Optional[str]:
     """Extract LinkedIn profile link from message text"""
@@ -235,14 +236,15 @@ def get_messages_for_timestamp_range(start_timestamp, end_date=None):
 
     print(f"🔍 Searching Slack with: {search_query}")
 
-    # Use actual Slack API search via MCP Zapier
+    # Use actual Slack API search via MCP Zapier (auto-detected server)
     try:
-        result = mcp_Zapier_slack_find_message({
-            "instructions": f"Search for introduction messages in the intros channel using query: {search_query}",
-            "query": search_query,
-            "sort_by": "timestamp",
-            "sort_dir": "desc"
-        })
+        mcp = get_mcp_adapter()
+        result = mcp.slack_find_message(
+            instructions=f"Search for introduction messages in the intros channel using query: {search_query}",
+            query=search_query,
+            sort_by="timestamp",
+            sort_dir="desc"
+        )
 
         if result and 'results' in result:
             messages = []
