@@ -232,11 +232,25 @@ class SecurityManager:
             self.logger.warning(f"File operation blocked - invalid path: {filepath} - {e}")
             return False
         
-        # Validate filename
-        filename = os.path.basename(filepath)
-        if not self.validator.validate_filename(filename, self.config.allowed_file_extensions):
-            self.logger.warning(f"File operation blocked - invalid filename: {filename}")
-            return False
+        # Check if this is a directory path or if it's a known directory
+        is_directory = (
+            filepath.endswith('/') or 
+            filepath in ['.', './welcome_messages', 'welcome_messages'] or
+            (os.path.exists(filepath) and os.path.isdir(filepath))
+        )
+        
+        if is_directory:
+            # This is a directory operation, validate directory name
+            dirname = os.path.basename(filepath.rstrip('/'))
+            if dirname and not self.validator.validate_filename(dirname, []):  # No extension required for directories
+                self.logger.warning(f"File operation blocked - invalid directory name: {dirname}")
+                return False
+        else:
+            # This is a file operation, validate filename with extensions
+            filename = os.path.basename(filepath)
+            if not self.validator.validate_filename(filename, self.config.allowed_file_extensions):
+                self.logger.warning(f"File operation blocked - invalid filename: {filename}")
+                return False
         
         return True
     

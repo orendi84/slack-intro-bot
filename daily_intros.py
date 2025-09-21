@@ -122,8 +122,8 @@ def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./
     
     security = get_security_manager()
     
-    # Validate output directory path
-    if not security.validate_file_operation(output_dir, "write"):
+    # Validate output directory path (treat as directory, not file)
+    if not security.validate_file_operation(output_dir, "create"):
         raise ValueError(f"Invalid output directory path: {output_dir}")
     
     os.makedirs(output_dir, exist_ok=True)
@@ -147,8 +147,8 @@ def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./
 
         if not welcome_messages:
             f.write("*No new introductions found in recent messages.*\n")
-            os.chmod(filename, 0o600)
-            return filename
+            os.chmod(filepath, 0o600)
+            return filepath
 
         f.write(f"## Summary\n\n")
         f.write(f"Found **{len(welcome_messages)}** introduction(s) from recent days.\n\n")
