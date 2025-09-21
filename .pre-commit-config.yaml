@@ -1,0 +1,93 @@
+# Pre-commit hooks for Slack Intro Bot
+# Install with: pip install pre-commit && pre-commit install
+
+repos:
+  # Python code formatting
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=100]
+
+  # Import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=100]
+
+  # Linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        args: [--max-line-length=100, --ignore=E501,W503]
+
+  # Security scanning
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.8.6
+    hooks:
+      - id: bandit
+        args: [-r, ., -f, json, -o, bandit-report.json]
+        exclude: ^tests/
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests]
+        exclude: ^tests/
+
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Basic file checks
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      
+      # Security checks
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      
+      # Python specific
+      - id: debug-statements
+      - id: check-ast
+      - id: check-merge-conflict
+      
+      # File permissions
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  # Dependency security scanning
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.2
+    hooks:
+      - id: python-safety-dependencies-check
+        files: requirements.txt
+
+  # Secrets detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: \.secrets\.baseline$
+
+  # Custom security hooks
+  - repo: local
+    hooks:
+      - id: security-check
+        name: Security Configuration Check
+        entry: python security_config.py
+        language: system
+        files: \.py$
+        pass_filenames: false

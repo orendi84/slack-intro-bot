@@ -67,30 +67,45 @@ def is_intro_message(text: str) -> bool:
 
 
 def parse_intro_message(message: Dict) -> Optional[Dict]:
-    """Parse a Slack message to extract intro information"""
+    """Parse a Slack message to extract intro information with security validation"""
+    from security_config import get_security_manager
+    
+    security = get_security_manager()
+    
     user = message.get('user', {})
     text = message.get('text', '') or message.get('raw_text', '')
 
     if not is_intro_message(text):
         return None
 
-    real_name = user.get('real_name', '')
-    username = user.get('name', '')
-    first_name = extract_first_name(real_name, username)
-    linkedin_link = extract_linkedin_link(text)
+    # Validate and sanitize input data
+    raw_data = {
+        'real_name': user.get('real_name', ''),
+        'username': user.get('name', ''),
+        'message_text': text,
+        'timestamp': message.get('ts_time', ''),
+        'user_id': user.get('id', ''),
+        'permalink': message.get('permalink', '')
+    }
+    
+    # Apply security validation and sanitization
+    sanitized_data = security.validate_and_sanitize_input(raw_data)
+    
+    first_name = extract_first_name(sanitized_data['real_name'], sanitized_data['username'])
+    linkedin_link = extract_linkedin_link(sanitized_data['message_text'])
 
     # Note: Profile search will be done later for users without LinkedIn links
     profile_checked = False
 
     return {
         'first_name': first_name,
-        'real_name': real_name,
-        'username': username,
+        'real_name': sanitized_data['real_name'],
+        'username': sanitized_data['username'],
         'linkedin_link': linkedin_link,
-        'message_text': text,
-        'timestamp': message.get('ts_time', ''),
-        'user_id': user.get('id', ''),
-        'permalink': message.get('permalink', ''),
+        'message_text': sanitized_data['message_text'],
+        'timestamp': sanitized_data['timestamp'],
+        'user_id': sanitized_data['user_id'],
+        'permalink': sanitized_data['permalink'],
         'profile_checked': profile_checked
     }
 
@@ -102,12 +117,30 @@ def generate_welcome_message(intro_data: Dict) -> str:
     return config.welcome_message_template.format(first_name=first_name)
 
 def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./welcome_messages", output_date: str = None):
-    """Save daily intro report"""
+    """Save daily intro report with security validation"""
+    from security_config import get_security_manager
+    
+    security = get_security_manager()
+    
+    # Validate output directory path
+    if not security.validate_file_operation(output_dir, "write"):
+        raise ValueError(f"Invalid output directory path: {output_dir}")
+    
     os.makedirs(output_dir, exist_ok=True)
     date_str = output_date if output_date else datetime.now().strftime('%Y-%m-%d')
-    filename = os.path.join(output_dir, f"daily_intros_{date_str}.md")
+    
+    # Validate filename
+    filename = f"daily_intros_{date_str}.md"
+    if not security.validator.validate_filename(filename, ['.md']):
+        raise ValueError(f"Invalid filename: {filename}")
+    
+    filepath = os.path.join(output_dir, filename)
+    
+    # Validate full file path
+    if not security.validate_file_operation(filepath, "write"):
+        raise ValueError(f"Invalid file path: {filepath}")
 
-    with open(filename, 'w', encoding='utf-8') as f:
+    with open(filepath, 'w', encoding='utf-8') as f:
         f.write(f"# Daily Introductions - {date_str}\n\n")
         f.write(f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         f.write("**🚀 This report was generated using LIVE Slack data via MCP Zapier integration!**\n\n")
@@ -160,8 +193,8 @@ def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./
                 f.write("---\n\n")
 
     # Set restrictive permissions (owner read/write only)
-    os.chmod(filename, 0o600)
-    return filename
+    os.chmod(filepath, 0o600)
+    return filepath
 
 def get_cutoff_timestamp(start_date=None):
     """Get the cutoff timestamp - either from parameter or yesterday's file"""

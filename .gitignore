@@ -130,9 +130,11 @@ dmypy.json
 
 # Project specific
 welcome_messages/
-*.md
+# Keep important documentation files
 !README.md
 !PROJECT_OVERVIEW.md
+!SECURITY.md
+!SECURITY_SUMMARY.md
 
 # IDE
 .vscode/
@@ -175,4 +177,40 @@ htmlcov/
 coverage.xml
 
 # Pre-commit
-.pre-commit-config.yaml
+# .pre-commit-config.yaml  # Keep this file in repo
+
+# Security and secrets
+.env
+.env.local
+.env.production
+.env.staging
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+auth.json
+tokens.json
+
+# Security reports
+bandit-report.json
+safety-report.json
+security-report.json
+vulnerability-report.json
+
+# Session and cache files
+.sessions/
+.cache/
+*.session
+*.cache
+
+# Backup files
+*.bak
+*.backup
+*.old
+*~
+
+# Lock files (keep package-lock.json but ignore others)
+*.lock
+!package-lock.json
