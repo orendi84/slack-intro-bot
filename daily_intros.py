@@ -32,7 +32,10 @@ def extract_linkedin_link(text: str) -> Optional[str]:
         if match:
             url = match.group(0)
             # Clean up the URL
-            url = re.sub(r'^<|>$|\($|\)$', '', url)  # Remove angle brackets or parentheses
+            if url.startswith('<') and url.endswith('>'):
+                url = url[1:-1]
+            elif url.startswith('(') and url.endswith(')'):
+                url = url[1:-1]
             url = re.sub(r'[.,;!?]+$', '', url)  # Remove trailing punctuation
             url = re.sub(r'LinkedIn>$', '', url)  # Remove "LinkedIn>" at the end
             url = re.sub(r'linkedin>$', '', url, flags=re.IGNORECASE)  # Remove "linkedin>" at the end (case insensitive)

@@ -18,19 +18,32 @@ def extract_linkedin_link(text: str) -> Optional[str]:
     
     # Enhanced LinkedIn URL patterns
     linkedin_patterns = [
-        r'https?://(?:www\.)?linkedin\.com/in/[^\s\)]+',
-        r'https?://(?:www\.)?linkedin\.com/pub/[^\s\)]+',
-        r'linkedin\.com/in/[^\s\)]+',
-        r'linkedin\.com/pub/[^\s\)]+',
+        r'<https?://(?:www\.)?linkedin\.com/in/[^>]+>',
+        r'\(https?://(?:www\.)?linkedin\.com/in/[^)]+\)',
+        r'https?://(?:www\.)?linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>|LinkedIn|linkedin)',
+        r'https?://(?:www\.)?linkedin\.com/pub/[\w\-\.]+/?(?=\s|$)',
+        r'linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>)',
+        r'linkedin\.com/pub/[\w\-\.]+/?(?=\s|$|>)'
     ]
     
     for pattern in linkedin_patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             url = match.group(0)
-            # Ensure URL has protocol
+            
+            # Clean up URL by removing angle brackets and parentheses
+            if url.startswith('<') and url.endswith('>'):
+                url = url[1:-1]
+            elif url.startswith('(') and url.endswith(')'):
+                url = url[1:-1]
+            
+            # Ensure URL has protocol and normalize case
             if not url.startswith('http'):
                 url = 'https://' + url
+            
+            # Normalize to lowercase for consistency
+            url = url.lower()
+            
             return url
     
     return None

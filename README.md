@@ -1,39 +1,77 @@
-# Slack Intro Bot - Simple Manual Process
+# 🚀 Slack Intro Bot
 
-A simple tool to generate daily introduction reports from Slack using Claude Code's MCP Zapier integration.
+> **Automated Daily Introduction Processing System**
 
-## Quick Start
+A sophisticated tool that extracts LinkedIn profiles from Slack introduction messages and generates formatted welcome reports. Features multi-environment support, intelligent LinkedIn extraction, and robust error handling.
 
-1. **Open Claude Code** in this directory
-2. **Run the script:**
-   ```bash
-   # Auto-detect today's new introductions
-   python3 daily_intros.py
+[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
+[![Multi-Environment](https://img.shields.io/badge/Environment-Claude%20%7C%20Cursor-orange.svg)](https://claude.ai/)
 
-   # Or specify date range
-   python3 daily_intros.py 2025-09-17 2025-09-18 2025-09-18
-   ```
-3. **Get your report** in `./welcome_messages/daily_intros_YYYY-MM-DD.md`
+## ✨ **Features**
 
-## What It Does
+- 🎯 **Smart LinkedIn Extraction**: Finds LinkedIn profiles in messages or user profiles
+- 🔄 **Multi-Environment Support**: Works in Claude Code and Cursor environments
+- ⚡ **Optimized Processing**: Only searches profiles when LinkedIn not found in messages
+- 🛡️ **Robust Error Handling**: Multiple timeout layers prevent hanging processes
+- 📊 **Comprehensive Logging**: Detailed progress tracking and error reporting
+- 🎨 **Formatted Reports**: Beautiful markdown output with embedded LinkedIn links
 
-- Searches Slack #intros channel for new introductions since yesterday
-- Extracts names, LinkedIn links, and original messages
-- Generates personalized welcome messages with the format:
-  ```
-  Aloha [FirstName]!
+## 🚀 **Quick Start**
 
-  Welcome to Lenny's podcast community!
+### **For Claude Code Environment**
+```python
+# Direct execution in Claude Code
+exec(open('daily_intros.py').read())
 
-  Have a wonderful day!
-  ```
-- Saves everything in a structured markdown report
+# Or import and run
+import daily_intros
+```
 
-## Requirements
+### **For Cursor Code Editor**
+```bash
+# Auto-detect today's new introductions
+python3 daily_intros.py
 
-- Claude Code with MCP Zapier integration
-- Python 3.13+
-- `.env` file with configuration (welcome message template)
+# Or specify date range
+python3 daily_intros.py 2025-09-17 2025-09-18 2025-09-18
+```
+
+### **Expected Output**
+- 📄 Markdown report: `daily_intros_YYYY-MM-DD.md`
+- 🔗 LinkedIn profiles extracted and embedded
+- 📊 Processing logs with detailed progress
+
+## 🔍 **How It Works**
+
+### **Three-Phase Processing**
+1. **📨 Message Analysis**: Searches Slack #intros channel for new introductions
+2. **🔗 LinkedIn Extraction**: Finds LinkedIn profiles in messages or user profiles  
+3. **📊 Report Generation**: Creates formatted markdown reports with welcome messages
+
+### **Smart LinkedIn Detection**
+- **Primary**: Extracts LinkedIn URLs from introduction message content
+- **Fallback**: Searches user profile fields when not found in messages
+- **Secondary**: Username-based search if user ID search fails
+- **Optimized**: Only runs expensive profile searches when needed
+
+### **Multi-Environment Support**
+- **Claude Code**: Auto-detects `mcp_Zapier_*` functions
+- **Cursor Editor**: Auto-detects `mcp__zapier__*` functions
+- **Seamless**: No manual configuration required
+
+## 📋 **Requirements**
+
+### **System Requirements**
+- **Python 3.7+** (tested with 3.13)
+- **MCP Server** with Zapier integration
+- **Slack Workspace** with `#intros` channel
+- **API Permissions**: Read access to Slack messages and user profiles
+
+### **Environment Setup**
+- **Claude Code Environment**: MCP Zapier server enabled
+- **Cursor Code Editor**: MCP Zapier server configured
+- **Configuration File**: `.env` with welcome message template
 
 ## Configuration
 
@@ -82,31 +120,80 @@ python3 daily_intros.py 2025-09-17 2025-09-18 2025-09-18
 - `END_DATE`: Messages up to this date (optional)
 - `OUTPUT_DATE`: Date for output filename (optional, defaults to today)
 
-## File Structure
+## 📁 **Project Structure**
 
 ```
 slack-intro-bot/
-├── daily_intros.py          # Main script - run this daily
-├── config.py               # Configuration handler
-├── .env                    # Secret configuration
-├── welcome_messages/       # Output directory
-│   ├── daily_intros_2025-09-19.md
-│   └── daily_intros_2025-09-20.md
-└── README.md               # This file
+├── 📄 daily_intros.py              # Main orchestrator (416 lines)
+├── 🔍 user_profile_search.py       # LinkedIn profile extraction (305 lines)
+├── 🔧 mcp_adapter.py               # Multi-environment MCP adapter
+├── 📋 PROJECT_OVERVIEW.md          # LLM-optimized documentation
+├── 📖 README.md                    # Human-readable documentation
+├── ⚙️ .env                         # Configuration (gitignored)
+├── 📁 welcome_messages/            # Generated reports
+│   ├── daily_intros_2025-01-21.md
+│   └── daily_intros_2025-01-22.md
+└── 🧪 tests/                       # Test suite (coming soon)
 ```
 
-## Security
+### **Core Components**
+- **`daily_intros.py`**: Main entry point with three-phase processing
+- **`user_profile_search.py`**: Fallback LinkedIn extraction with timeout protection
+- **`mcp_adapter.py`**: Environment detection and function mapping
+- **`PROJECT_OVERVIEW.md`**: Comprehensive technical documentation for LLMs
 
-- All secrets are in `.env` (gitignored)
-- Output files have restricted permissions (owner only)
-- No sensitive data committed to GitHub
+## 🛡️ **Safety & Security**
 
-## Manual Process
+### **Error Handling**
+- **Multi-layer Timeouts**: 30s → 45s → 60s maximum processing time
+- **Guaranteed Completion**: Never hangs indefinitely
+- **Graceful Degradation**: Continues processing even if profile searches fail
+- **Comprehensive Logging**: Detailed error reporting and progress tracking
 
-This is a **manual process** - no automation:
-1. Open Claude Code each morning
-2. Run `python3 daily_intros.py`
-3. Review your markdown report
-4. Done in 30 seconds
+### **Security Features**
+- **Environment Variables**: All secrets in `.env` (gitignored)
+- **Restricted Permissions**: Output files owner-only access (600)
+- **No Sensitive Data**: No API keys or tokens in code
+- **Safe Processing**: No external data execution or injection
 
-**Why manual?** MCP Zapier integration only works in Claude Code's interactive environment, not in automated scripts or cron jobs.
+### **Reliability**
+- **Signal-based Timeouts**: Proper cleanup of system resources
+- **Exception Handling**: Catches all possible error scenarios
+- **Fallback Mechanisms**: Multiple search strategies for robustness
+- **Process Isolation**: Individual failures don't crash the entire process
+
+## 🔄 **Usage Patterns**
+
+### **Daily Workflow**
+1. **Morning**: Open Claude Code or Cursor
+2. **Execute**: Run the daily intros script
+3. **Review**: Check generated markdown report
+4. **Complete**: Process takes 30-60 seconds
+
+### **Batch Processing**
+- **Multiple Users**: Handles multiple introductions per execution
+- **Date Ranges**: Process historical introductions
+- **Flexible Output**: Customizable report naming and formatting
+
+### **Integration Ready**
+- **API Compatible**: Easy integration with other tools
+- **Data Export**: Structured output for analytics
+- **Customizable**: Configurable templates and processing rules
+
+---
+
+## 📚 **Documentation**
+
+- **📋 [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)**: Comprehensive technical documentation for LLMs
+- **📖 [README.md](README.md)**: Human-readable guide (this file)
+- **🔧 Code Comments**: Detailed inline documentation
+- **📊 Logging**: Comprehensive execution logs with emojis for easy parsing
+
+## 🤝 **Contributing**
+
+This project follows software engineering best practices:
+- **Modular Architecture**: Clean separation of concerns
+- **Error Resilience**: Comprehensive error handling
+- **Documentation**: Both human and LLM-optimized docs
+- **Testing**: Robust test coverage (coming soon)
+- **Monitoring**: Detailed logging and observability
