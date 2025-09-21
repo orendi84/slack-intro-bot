@@ -9,7 +9,7 @@ import re
 import os
 from datetime import datetime
 from typing import List, Dict, Optional
-from user_profile_search import search_user_profile_for_linkedin_with_fallback
+from user_profile_search import safe_profile_search_for_daily_intros
 from mcp_adapter import get_mcp_adapter
 
 def extract_linkedin_link(text: str) -> Optional[str]:
@@ -370,7 +370,7 @@ def main(start_date=None, end_date=None, output_date=None):
         for user_id, username in users_needing_profile_search:
             print(f"\n🔍 Searching profile for user {user_id} ({username})...")
             try:
-                profile_linkedin = search_user_profile_for_linkedin_with_fallback(user_id, username)
+                profile_linkedin = safe_profile_search_for_daily_intros(user_id, username)
                 if profile_linkedin:
                     # Update the intro data for this user
                     for intro_data in intro_data_list:
@@ -382,6 +382,7 @@ def main(start_date=None, end_date=None, output_date=None):
                     print(f"ℹ️  No LinkedIn found in profile for {username}")
             except Exception as e:
                 print(f"⚠️  Error during profile search for {user_id}: {e}")
+                print(f"🏁 Profile search process completed with error for {user_id}")
     else:
         print("\n✅ All users already have LinkedIn links in their messages - skipping profile search")
     

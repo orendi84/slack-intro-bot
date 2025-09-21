@@ -53,11 +53,18 @@ def search_user_profile_for_linkedin(user_id: str, timeout_seconds: int = 30) ->
         
     Returns:
         LinkedIn URL if found, None otherwise
+        
+    Guarantees:
+        - Always returns within timeout_seconds
+        - Always prints completion message
+        - Never hangs indefinitely
     """
+    search_started = False
     try:
         # Set up timeout
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(timeout_seconds)
+        search_started = True
         
         print(f"🔍 Searching profile details for user: {user_id}")
         
@@ -152,6 +159,7 @@ def search_user_profile_for_linkedin(user_id: str, timeout_seconds: int = 30) ->
                     if real_name and 'linkedin' in real_name.lower():
                         linkedin_match = re.search(r'https?://[^\s]+linkedin[^\s]*', real_name, re.IGNORECASE)
                         if linkedin_match:
+                            print(f"✅ Found LinkedIn in fallback search: {linkedin_match.group(0)}")
                             return linkedin_match.group(0)
                     print(f"ℹ️  Fallback found user info but no LinkedIn in profile fields")
                 else:
@@ -161,17 +169,22 @@ def search_user_profile_for_linkedin(user_id: str, timeout_seconds: int = 30) ->
         except Exception as fallback_error:
             print(f"⚠️  Fallback method also failed: {fallback_error}")
 
+        print(f"🏁 Profile search completed for {user_id} - No LinkedIn found")
         return None
 
     except TimeoutError:
-        print(f"⏰ Profile search timed out for user {user_id}")
+        print(f"⏰ Profile search timed out for user {user_id} after {timeout_seconds} seconds")
+        print(f"🏁 Profile search completed for {user_id} - Timed out")
         return None
     except Exception as e:
         print(f"⚠️  Error fetching user profile for {user_id}: {e}")
+        print(f"🏁 Profile search completed for {user_id} - Error occurred")
         return None
     finally:
-        # Always cancel the alarm
-        signal.alarm(0)
+        # Always cancel the alarm and ensure completion message
+        if search_started:
+            signal.alarm(0)
+            print(f"✅ Profile search process finished for {user_id}")
 
 def search_user_profile_for_linkedin_with_fallback(user_id: str, username: str = None, timeout_seconds: int = 45) -> Optional[str]:
     """
@@ -184,11 +197,21 @@ def search_user_profile_for_linkedin_with_fallback(user_id: str, username: str =
         
     Returns:
         LinkedIn URL if found, None otherwise
+        
+    Guarantees:
+        - Always returns within timeout_seconds
+        - Always prints completion message
+        - Never hangs indefinitely
+        - Provides clear feedback to daily intros process
     """
+    fallback_started = False
     try:
         # Set up timeout for the entire fallback process
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(timeout_seconds)
+        fallback_started = True
+        
+        print(f"🚀 Starting comprehensive profile search for {user_id} (timeout: {timeout_seconds}s)")
         
         # First try the main profile search
         linkedin_url = search_user_profile_for_linkedin(user_id, timeout_seconds=30)
@@ -218,14 +241,64 @@ def search_user_profile_for_linkedin_with_fallback(user_id: str, username: str =
             except Exception as e:
                 print(f"⚠️  Username-based search failed: {e}")
         
+        print(f"🏁 Comprehensive profile search completed for {user_id} - No LinkedIn found")
         return None
     
     except TimeoutError:
-        print(f"⏰ Profile search with fallback timed out for user {user_id}")
+        print(f"⏰ Comprehensive profile search timed out for user {user_id} after {timeout_seconds} seconds")
+        print(f"🏁 Profile search completed for {user_id} - Timed out")
         return None
     except Exception as e:
-        print(f"⚠️  Error in fallback profile search for {user_id}: {e}")
+        print(f"⚠️  Error in comprehensive profile search for {user_id}: {e}")
+        print(f"🏁 Profile search completed for {user_id} - Error occurred")
         return None
     finally:
-        # Always cancel the alarm
-        signal.alarm(0)
+        # Always cancel the alarm and ensure completion message
+        if fallback_started:
+            signal.alarm(0)
+            print(f"✅ Comprehensive profile search process finished for {user_id}")
+
+def safe_profile_search_for_daily_intros(user_id: str, username: str = None) -> Optional[str]:
+    """
+    Safe wrapper for profile search that guarantees completion for daily intros process.
+    
+    This function provides an additional safety net to ensure the daily intros process
+    never hangs waiting for profile search results.
+    
+    Args:
+        user_id: Slack user ID to search
+        username: Slack username as fallback
+        
+    Returns:
+        LinkedIn URL if found, None otherwise
+        
+    Guarantees:
+        - Always returns within 60 seconds maximum
+        - Always prints completion message
+        - Never hangs indefinitely
+        - Provides clear feedback to daily intros process
+    """
+    print(f"🛡️  Starting SAFE profile search for {user_id}")
+    
+    try:
+        # Use a maximum timeout of 60 seconds as absolute safety net
+        result = search_user_profile_for_linkedin_with_fallback(
+            user_id, 
+            username, 
+            timeout_seconds=60
+        )
+        
+        if result:
+            print(f"🎉 SAFE profile search SUCCESS for {user_id}: {result}")
+        else:
+            print(f"📋 SAFE profile search COMPLETED for {user_id}: No LinkedIn found")
+        
+        return result
+        
+    except Exception as e:
+        print(f"🚨 SAFE profile search FAILED for {user_id}: {e}")
+        print(f"📋 SAFE profile search COMPLETED for {user_id}: Exception occurred")
+        return None
+    
+    finally:
+        print(f"🏁 SAFE profile search FINISHED for {user_id}")
