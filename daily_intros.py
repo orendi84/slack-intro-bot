@@ -9,6 +9,7 @@ import re
 import os
 from datetime import datetime
 from typing import List, Dict, Optional
+from user_profile_search import search_user_profile_for_linkedin_with_fallback
 
 def extract_linkedin_link(text: str) -> Optional[str]:
     """Extract LinkedIn profile link from message text"""
@@ -60,51 +61,6 @@ def is_intro_message(text: str) -> bool:
     text_lower = text.lower()
     return any(keyword in text_lower for keyword in intro_keywords)
 
-def extract_linkedin_from_profile(user_id: str) -> Optional[str]:
-    """Extract LinkedIn URL from Slack user profile using Zapier user lookup"""
-    try:
-        # Call the new Zapier find user by ID function - try different possible names
-        try:
-            result = mcp__zapier__slack_find_user_by_id({
-                "instructions": f"Get full profile details for user {user_id} to check for LinkedIn URL",
-                "user_id": user_id
-            })
-        except NameError:
-            # Function might not be available yet, return None for now
-            print(f"⚠️  Find User by ID function not yet available for {user_id}")
-            return None
-
-        if result and 'profile' in result:
-            profile = result['profile']
-
-            # Check common profile fields that might contain LinkedIn URLs
-            profile_fields = [
-                profile.get('status_text', ''),
-                profile.get('title', ''),
-                profile.get('phone', ''),
-                profile.get('skype', ''),
-                profile.get('real_name_normalized', ''),
-            ]
-
-            # Also check custom fields if they exist
-            fields = profile.get('fields', {})
-            if fields:
-                for field_id, field_data in fields.items():
-                    if isinstance(field_data, dict):
-                        profile_fields.append(field_data.get('value', ''))
-
-            # Search for LinkedIn URLs in all profile fields
-            for field_text in profile_fields:
-                if field_text:
-                    linkedin_url = extract_linkedin_link(str(field_text))
-                    if linkedin_url:
-                        return linkedin_url
-
-        return None
-
-    except Exception as e:
-        print(f"⚠️  Error fetching user profile for {user_id}: {e}")
-        return None
 
 def parse_intro_message(message: Dict) -> Optional[Dict]:
     """Parse a Slack message to extract intro information"""
@@ -119,15 +75,8 @@ def parse_intro_message(message: Dict) -> Optional[Dict]:
     first_name = extract_first_name(real_name, username)
     linkedin_link = extract_linkedin_link(text)
 
-    # If no LinkedIn found in message, check user profile
+    # Note: Profile search will be done later for users without LinkedIn links
     profile_checked = False
-    if not linkedin_link:
-        user_id = user.get('id', '')
-        if user_id:
-            profile_linkedin = extract_linkedin_from_profile(user_id)
-            if profile_linkedin:
-                linkedin_link = profile_linkedin
-            profile_checked = True
 
     return {
         'first_name': first_name,
@@ -288,7 +237,7 @@ def get_messages_for_timestamp_range(start_timestamp, end_date=None):
 
     # Use actual Slack API search via MCP Zapier
     try:
-        result = mcp__zapier__slack_find_message({
+        result = mcp_Zapier_slack_find_message({
             "instructions": f"Search for introduction messages in the intros channel using query: {search_query}",
             "query": search_query,
             "sort_by": "timestamp",
@@ -391,19 +340,60 @@ def main(start_date=None, end_date=None, output_date=None):
     else:
         print("ℹ️  No messages found in specified date range")
 
-    # Process the messages
-    welcome_messages = []
+    # Phase 1: Process messages and extract LinkedIn links from message content
+    print("\n🔄 Phase 1: Processing messages for LinkedIn links in content...")
+    intro_data_list = []
+    users_needing_profile_search = set()  # Track users who need profile search
+    
     for i, message in enumerate(recent_messages, 1):
         print(f"\n📨 Processing message {i}:")
         intro_data = parse_intro_message(message)
         if intro_data:
-            welcome_msg = generate_welcome_message(intro_data)
-            welcome_messages.append((intro_data, welcome_msg))
+            intro_data_list.append(intro_data)
             print(f"✅ Processed: {intro_data['first_name']}")
             if intro_data['linkedin_link']:
-                print(f"   🔗 LinkedIn: {intro_data['linkedin_link']}")
+                print(f"   🔗 LinkedIn found in message: {intro_data['linkedin_link']}")
+            else:
+                # This user needs profile search
+                user_id = message.get('user', {}).get('id', '')
+                if user_id:
+                    users_needing_profile_search.add((user_id, intro_data['username']))
+                    print(f"   ⏳ No LinkedIn in message - will search profile for {user_id}")
         else:
             print("❌ Not recognized as intro message")
+    
+    # Phase 2: Profile search for users without LinkedIn links
+    if users_needing_profile_search:
+        print(f"\n🔄 Phase 2: Searching profiles for {len(users_needing_profile_search)} users without LinkedIn...")
+        for user_id, username in users_needing_profile_search:
+            print(f"\n🔍 Searching profile for user {user_id} ({username})...")
+            try:
+                profile_linkedin = search_user_profile_for_linkedin_with_fallback(user_id, username)
+                if profile_linkedin:
+                    # Update the intro data for this user
+                    for intro_data in intro_data_list:
+                        if intro_data['username'] == username:
+                            intro_data['linkedin_link'] = profile_linkedin
+                            print(f"✅ Found LinkedIn in profile: {profile_linkedin}")
+                            break
+                else:
+                    print(f"ℹ️  No LinkedIn found in profile for {username}")
+            except Exception as e:
+                print(f"⚠️  Error during profile search for {user_id}: {e}")
+    else:
+        print("\n✅ All users already have LinkedIn links in their messages - skipping profile search")
+    
+    # Phase 3: Generate welcome messages
+    print(f"\n🔄 Phase 3: Generating welcome messages...")
+    welcome_messages = []
+    for intro_data in intro_data_list:
+        welcome_msg = generate_welcome_message(intro_data)
+        welcome_messages.append((intro_data, welcome_msg))
+        print(f"✅ Generated welcome for: {intro_data['first_name']}")
+        if intro_data['linkedin_link']:
+            print(f"   🔗 LinkedIn: {intro_data['linkedin_link']}")
+        else:
+            print(f"   ❌ No LinkedIn found")
 
     # Generate the report
     if welcome_messages:
