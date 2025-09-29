@@ -21,11 +21,13 @@ A sophisticated tool that extracts LinkedIn profiles from Slack introduction mes
 
 ### **For Claude Code Environment**
 ```python
-# Direct execution in Claude Code
-exec(open('daily_intros.py').read())
-
-# Or import and run
+# Recommended: Import and run
 import daily_intros
+daily_intros.main()
+
+# Or use explicit import
+from daily_intros import main
+main()
 ```
 
 ### **For Cursor Code Editor**
