@@ -7,28 +7,58 @@ Run this each morning to get today's introduction report
 import json
 import re
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from user_profile_search import safe_profile_search_for_daily_intros
 from mcp_adapter import get_mcp_adapter
 
-def extract_linkedin_link(text: str) -> Optional[str]:
-    """Extract LinkedIn profile link from message text"""
-    linkedin_patterns = [
-        # Handle URLs in angle brackets or parentheses first
-        r'<https?://(?:www\.)?linkedin\.com/in/[^>]+>',
-        r'\(https?://(?:www\.)?linkedin\.com/in/[^)]+\)',
-        # Standard LinkedIn profile URLs - more restrictive pattern
-        r'https?://(?:www\.)?linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>|LinkedIn|linkedin)',
-        r'https?://(?:www\.)?linkedin\.com/posts/[^\s>)\],]+',
-        # LinkedIn URLs without protocol - more restrictive
-        r'(?:www\.)?linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>|LinkedIn|linkedin)',
-        # Handle URLs with various punctuation
-        r'https?://(?:www\.)?linkedin\.com/in/[\w\-\.]+/?',
-    ]
+# Pre-compile regex patterns for better performance
+_LINKEDIN_PATTERNS = [
+    # Handle URLs in angle brackets or parentheses first
+    re.compile(r'<https?://(?:www\.)?linkedin\.com/in/[^>]+>', re.IGNORECASE),
+    re.compile(r'\(https?://(?:www\.)?linkedin\.com/in/[^)]+\)', re.IGNORECASE),
+    # Standard LinkedIn profile URLs - more restrictive pattern
+    re.compile(r'https?://(?:www\.)?linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>|LinkedIn|linkedin)', re.IGNORECASE),
+    re.compile(r'https?://(?:www\.)?linkedin\.com/posts/[^\s>)\],]+', re.IGNORECASE),
+    # LinkedIn URLs without protocol - more restrictive
+    re.compile(r'(?:www\.)?linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>|LinkedIn|linkedin)', re.IGNORECASE),
+    # Handle URLs with various punctuation
+    re.compile(r'https?://(?:www\.)?linkedin\.com/in/[\w\-\.]+/?', re.IGNORECASE),
+]
 
-    for pattern in linkedin_patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
+# Pre-compile cleanup patterns
+_CLEANUP_PATTERNS = [
+    (re.compile(r'[.,;!?]+$'), ''),
+    (re.compile(r'LinkedIn>$'), ''),
+    (re.compile(r'linkedin>$', re.IGNORECASE), ''),
+    (re.compile(r'This$'), ''),
+    (re.compile(r'/+$'), '/'),
+]
+
+# Cache for security manager and config
+_security_manager_cache = None
+_config_cache = None
+
+def _get_cached_security_manager():
+    """Get cached security manager instance"""
+    global _security_manager_cache
+    if _security_manager_cache is None:
+        from security_config import get_security_manager
+        _security_manager_cache = get_security_manager()
+    return _security_manager_cache
+
+def _get_cached_config():
+    """Get cached config instance"""
+    global _config_cache
+    if _config_cache is None:
+        from config import Config
+        _config_cache = Config()
+    return _config_cache
+
+def extract_linkedin_link(text: str) -> Optional[str]:
+    """Extract LinkedIn profile link from message text using pre-compiled patterns"""
+    for pattern in _LINKEDIN_PATTERNS:
+        match = pattern.search(text)
         if match:
             url = match.group(0)
             # Clean up the URL
@@ -36,41 +66,41 @@ def extract_linkedin_link(text: str) -> Optional[str]:
                 url = url[1:-1]
             elif url.startswith('(') and url.endswith(')'):
                 url = url[1:-1]
-            url = re.sub(r'[.,;!?]+$', '', url)  # Remove trailing punctuation
-            url = re.sub(r'LinkedIn>$', '', url)  # Remove "LinkedIn>" at the end
-            url = re.sub(r'linkedin>$', '', url, flags=re.IGNORECASE)  # Remove "linkedin>" at the end (case insensitive)
-            url = re.sub(r'This$', '', url)  # Remove "This" at the end
-            url = re.sub(r'/+$', '/', url)  # Clean up trailing slashes
+            
+            # Apply cleanup patterns
+            for cleanup_pattern, replacement in _CLEANUP_PATTERNS:
+                url = cleanup_pattern.sub(replacement, url)
+            
             # Add protocol if missing
             if not url.startswith('http'):
                 url = 'https://' + url
             return url
     return None
 
+# Pre-define intro keywords as module constant for better performance
+_INTRO_KEYWORDS = frozenset([
+    'hi everyone', 'hello everyone', 'hey everyone', 'hey all', 'hi all',
+    'i\'m ', 'my name is', 'introduction', 'nice to meet',
+    'pleased to meet', 'excited to be here', 'happy to be here',
+    'i am', 'i have been', 'based', 'working', 'fun fact'
+])
+
 def extract_first_name(real_name: str, username: str) -> str:
-    """Extract first name from user data"""
+    """Extract first name from user data (optimized to avoid double split)"""
     if real_name:
-        first_name = real_name.split()[0] if real_name.split() else real_name
-        return first_name
+        name_parts = real_name.split()
+        return name_parts[0] if name_parts else real_name
     return username if username else "there"
 
 def is_intro_message(text: str) -> bool:
-    """Check if message looks like an introduction"""
-    intro_keywords = [
-        'hi everyone', 'hello everyone', 'hey everyone', 'hey all', 'hi all',
-        'i\'m ', 'my name is', 'introduction', 'nice to meet',
-        'pleased to meet', 'excited to be here', 'happy to be here',
-        'i am', 'i have been', 'based', 'working', 'fun fact'
-    ]
+    """Check if message looks like an introduction using pre-defined keywords"""
     text_lower = text.lower()
-    return any(keyword in text_lower for keyword in intro_keywords)
+    return any(keyword in text_lower for keyword in _INTRO_KEYWORDS)
 
 
 def parse_intro_message(message: Dict) -> Optional[Dict]:
     """Parse a Slack message to extract intro information with security validation"""
-    from security_config import get_security_manager
-    
-    security = get_security_manager()
+    security = _get_cached_security_manager()
     
     user = message.get('user', {})
     text = message.get('text', '') or message.get('raw_text', '')
@@ -110,17 +140,14 @@ def parse_intro_message(message: Dict) -> Optional[Dict]:
     }
 
 def generate_welcome_message(intro_data: Dict) -> str:
-    """Generate personalized welcome message"""
-    from config import Config
-    config = Config()
+    """Generate personalized welcome message using cached config"""
+    config = _get_cached_config()
     first_name = intro_data['first_name'].capitalize()
     return config.welcome_message_template.format(first_name=first_name)
 
 def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./welcome_messages", output_date: str = None):
-    """Save daily intro report with security validation"""
-    from security_config import get_security_manager
-    
-    security = get_security_manager()
+    """Save daily intro report with security validation and optimized I/O"""
+    security = _get_cached_security_manager()
     
     # Validate output directory path (treat as directory, not file)
     if not security.validate_file_operation(output_dir, "create"):
@@ -140,57 +167,69 @@ def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./
     if not security.validate_file_operation(filepath, "write"):
         raise ValueError(f"Invalid file path: {filepath}")
 
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(f"# Daily Introductions - {date_str}\n\n")
-        f.write(f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-        f.write("**🚀 This report was generated using LIVE Slack data via MCP Zapier integration!**\n\n")
+    # Build content in memory for better I/O performance
+    content_parts = [
+        f"# Daily Introductions - {date_str}\n\n",
+        f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n",
+        "**🚀 This report was generated using LIVE Slack data via MCP Zapier integration!**\n\n"
+    ]
 
-        if not welcome_messages:
-            f.write("*No new introductions found in recent messages.*\n")
-            os.chmod(filepath, 0o600)
-            return filepath
-
-        f.write(f"## Summary\n\n")
-        f.write(f"Found **{len(welcome_messages)}** introduction(s) from recent days.\n\n")
-        f.write("---\n\n")
+    if not welcome_messages:
+        content_parts.append("*No new introductions found in recent messages.*\n")
+    else:
+        content_parts.extend([
+            f"## Summary\n\n",
+            f"Found **{len(welcome_messages)}** introduction(s) from recent days.\n\n",
+            "---\n\n"
+        ])
 
         for i, (intro_data, welcome_msg) in enumerate(welcome_messages, 1):
-            f.write(f"## {i}. {intro_data['real_name']}\n\n")
-
+            intro_parts = [f"## {i}. {intro_data['real_name']}\n\n"]
+            
             # User info section
-            f.write("### 👤 User Information\n")
-            f.write(f"- **Name:** {intro_data['real_name']}\n")
-            f.write(f"- **Username:** @{intro_data['username']}\n")
+            intro_parts.append("### 👤 User Information\n")
+            intro_parts.append(f"- **Name:** {intro_data['real_name']}\n")
+            intro_parts.append(f"- **Username:** @{intro_data['username']}\n")
 
             if intro_data['linkedin_link']:
                 source = " (from profile)" if intro_data.get('profile_checked') and intro_data['linkedin_link'] else ""
-                f.write(f"- **LinkedIn:** [{intro_data['linkedin_link']}]({intro_data['linkedin_link']}){source}\n")
+                intro_parts.append(f"- **LinkedIn:** [{intro_data['linkedin_link']}]({intro_data['linkedin_link']}){source}\n")
             else:
                 if intro_data.get('profile_checked'):
-                    f.write("- **LinkedIn:** *Not found in message or Slack profile*\n")
+                    intro_parts.append("- **LinkedIn:** *Not found in message or Slack profile*\n")
                 else:
-                    f.write("- **LinkedIn:** *Not provided*\n")
+                    intro_parts.append("- **LinkedIn:** *Not provided*\n")
 
             if intro_data.get('permalink'):
-                f.write(f"- **Message Link:** [View in Slack]({intro_data['permalink']})\n")
+                intro_parts.append(f"- **Message Link:** [View in Slack]({intro_data['permalink']})\n")
 
-            f.write(f"- **Posted:** {intro_data.get('timestamp', 'Unknown')}\n\n")
+            intro_parts.append(f"- **Posted:** {intro_data.get('timestamp', 'Unknown')}\n\n")
 
             # Welcome message section
-            f.write("### 💬 Draft Welcome Message\n\n")
-            f.write("```\n")
-            f.write(welcome_msg)
-            f.write("\n```\n\n")
+            intro_parts.extend([
+                "### 💬 Draft Welcome Message\n\n",
+                "```\n",
+                welcome_msg,
+                "\n```\n\n"
+            ])
 
             # Original intro section
-            f.write("### 📝 Original Introduction\n\n")
-            f.write("> ")
             formatted_intro = intro_data['message_text'].replace('\n', '\n> ')
-            f.write(formatted_intro)
-            f.write("\n\n")
+            intro_parts.extend([
+                "### 📝 Original Introduction\n\n",
+                "> ",
+                formatted_intro,
+                "\n\n"
+            ])
 
             if i < len(welcome_messages):
-                f.write("---\n\n")
+                intro_parts.append("---\n\n")
+            
+            content_parts.extend(intro_parts)
+
+    # Write all content at once
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(''.join(content_parts))
 
     # Set restrictive permissions (owner read/write only)
     os.chmod(filepath, 0o600)
@@ -198,30 +237,37 @@ def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./
 
 def get_cutoff_timestamp(start_date=None):
     """Get the cutoff timestamp - either from parameter or yesterday's file"""
-    from datetime import datetime, timedelta
-
     if start_date:
         print(f"📅 Using provided start date: {start_date}")
         return f"{start_date}T00:00:00.000Z"
 
     # Auto-detect from the latest MD file by finding the most recent date in filename
-    import glob
-    from datetime import datetime
-
     cutoff_timestamp = "2025-09-17T00:00:00.000Z"  # Default fallback
+    timestamp_pattern = re.compile(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)')
+    date_pattern = re.compile(r'(\d{4}-\d{2}-\d{2})')
+    
     try:
-        # Find all daily intro files in the welcome_messages directory
-        md_files = glob.glob("./welcome_messages/daily_intros_*.md")
+        # Use os.scandir for better performance than glob
+        welcome_dir = "./welcome_messages"
+        if not os.path.exists(welcome_dir):
+            return cutoff_timestamp
+        
+        md_files = []
+        with os.scandir(welcome_dir) as entries:
+            for entry in entries:
+                if entry.is_file() and entry.name.startswith("daily_intros_") and entry.name.endswith(".md"):
+                    md_files.append(entry.path)
+        
         if md_files:
             # Sort files by the date in their filename (not modification time)
-            md_files.sort(key=lambda x: re.search(r'(\d{4}-\d{2}-\d{2})', x).group(1) if re.search(r'(\d{4}-\d{2}-\d{2})', x) else "")
+            md_files.sort(key=lambda x: date_pattern.search(x).group(1) if date_pattern.search(x) else "")
 
             # Find the most recent file that's not today (to avoid reading empty/partial files)
             today_str = datetime.now().strftime('%Y-%m-%d')
             latest_file = None
             for file in reversed(md_files):  # Start from latest
-                file_date = re.search(r'(\d{4}-\d{2}-\d{2})', file)
-                if file_date and file_date.group(1) != today_str:
+                file_date_match = date_pattern.search(file)
+                if file_date_match and file_date_match.group(1) != today_str:
                     latest_file = file
                     break
 
@@ -231,10 +277,11 @@ def get_cutoff_timestamp(start_date=None):
 
             print(f"📅 Found latest MD file: {latest_file}")
 
-            with open(latest_file, 'r') as f:
+            # Read file and find timestamps efficiently
+            with open(latest_file, 'r', encoding='utf-8') as f:
                 content = f.read()
                 # Find ALL timestamps in the file and use the latest one
-                timestamps = re.findall(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)', content)
+                timestamps = timestamp_pattern.findall(content)
                 if timestamps:
                     cutoff_timestamp = max(timestamps)
                     print(f"📅 Auto-detected latest timestamp from {latest_file}: {cutoff_timestamp}")
@@ -245,18 +292,20 @@ def get_cutoff_timestamp(start_date=None):
 
 def get_messages_for_timestamp_range(start_timestamp, end_date=None):
     """Get messages for a specific timestamp range using Slack API search"""
-    from datetime import datetime, timedelta
-
+    # Extract date part once (more efficient than multiple splits)
+    start_date = start_timestamp.split('T', 1)[0]
+    
     # Build search query based on date range with proper date arithmetic
     if end_date:
         # For specific date ranges, adjust dates to include the target date
-        start_date = start_timestamp.split('T')[0]  # Extract date part
-        if start_date == end_date.split('T')[0] if 'T' in end_date else end_date:
+        end_date_part = end_date.split('T', 1)[0] if 'T' in end_date else end_date
+        
+        if start_date == end_date_part:
             search_query = f"in:intros during:{start_date}"
         else:
             # Convert to datetime objects for proper date arithmetic
             start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-            end_dt = datetime.strptime(end_date.split('T')[0] if 'T' in end_date else end_date, '%Y-%m-%d')
+            end_dt = datetime.strptime(end_date_part, '%Y-%m-%d')
 
             # Adjust dates: start_date-1 and end_date+2
             adjusted_start = (start_dt - timedelta(days=1)).strftime('%Y-%m-%d')
@@ -264,7 +313,6 @@ def get_messages_for_timestamp_range(start_timestamp, end_date=None):
 
             search_query = f"in:intros after:{adjusted_start} before:{adjusted_end}"
     else:
-        start_date = start_timestamp.split('T')[0]
         # For open-ended searches, subtract 1 day from start
         start_dt = datetime.strptime(start_date, '%Y-%m-%d')
         adjusted_start = (start_dt - timedelta(days=1)).strftime('%Y-%m-%d')
@@ -383,13 +431,17 @@ def main(start_date=None, end_date=None, output_date=None):
     # Phase 1: Process messages and extract LinkedIn links from message content
     print("\n🔄 Phase 1: Processing messages for LinkedIn links in content...")
     intro_data_list = []
-    users_needing_profile_search = set()  # Track users who need profile search
+    intro_data_by_username = {}  # Use dict for O(1) lookups instead of nested loop
+    users_needing_profile_search = []  # Track users who need profile search (order preserved)
     
     for i, message in enumerate(recent_messages, 1):
         print(f"\n📨 Processing message {i}:")
         intro_data = parse_intro_message(message)
         if intro_data:
             intro_data_list.append(intro_data)
+            username = intro_data['username']
+            intro_data_by_username[username] = intro_data
+            
             print(f"✅ Processed: {intro_data['first_name']}")
             if intro_data['linkedin_link']:
                 print(f"   🔗 LinkedIn found in message: {intro_data['linkedin_link']}")
@@ -397,12 +449,12 @@ def main(start_date=None, end_date=None, output_date=None):
                 # This user needs profile search
                 user_id = message.get('user', {}).get('id', '')
                 if user_id:
-                    users_needing_profile_search.add((user_id, intro_data['username']))
+                    users_needing_profile_search.append((user_id, username))
                     print(f"   ⏳ No LinkedIn in message - will search profile for {user_id}")
         else:
             print("❌ Not recognized as intro message")
     
-    # Phase 2: Profile search for users without LinkedIn links
+    # Phase 2: Profile search for users without LinkedIn links (optimized with O(1) dict lookup)
     if users_needing_profile_search:
         print(f"\n🔄 Phase 2: Searching profiles for {len(users_needing_profile_search)} users without LinkedIn...")
         for user_id, username in users_needing_profile_search:
@@ -410,12 +462,10 @@ def main(start_date=None, end_date=None, output_date=None):
             try:
                 profile_linkedin = safe_profile_search_for_daily_intros(user_id, username)
                 if profile_linkedin:
-                    # Update the intro data for this user
-                    for intro_data in intro_data_list:
-                        if intro_data['username'] == username:
-                            intro_data['linkedin_link'] = profile_linkedin
-                            print(f"✅ Found LinkedIn in profile: {profile_linkedin}")
-                            break
+                    # Update the intro data for this user using O(1) dict lookup
+                    if username in intro_data_by_username:
+                        intro_data_by_username[username]['linkedin_link'] = profile_linkedin
+                        print(f"✅ Found LinkedIn in profile: {profile_linkedin}")
                 else:
                     print(f"ℹ️  No LinkedIn found in profile for {username}")
             except Exception as e:

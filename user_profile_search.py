@@ -11,23 +11,29 @@ import signal
 from typing import Optional, Dict
 from mcp_adapter import get_mcp_adapter
 
+# Pre-compile LinkedIn regex patterns for better performance
+_LINKEDIN_PATTERNS = [
+    re.compile(r'<https?://(?:www\.)?linkedin\.com/in/[^>]+>', re.IGNORECASE),
+    re.compile(r'\(https?://(?:www\.)?linkedin\.com/in/[^)]+\)', re.IGNORECASE),
+    re.compile(r'https?://(?:www\.)?linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>|LinkedIn|linkedin)', re.IGNORECASE),
+    re.compile(r'https?://(?:www\.)?linkedin\.com/pub/[\w\-\.]+/?(?=\s|$)', re.IGNORECASE),
+    re.compile(r'linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>)', re.IGNORECASE),
+    re.compile(r'linkedin\.com/pub/[\w\-\.]+/?(?=\s|$|>)', re.IGNORECASE)
+]
+
+# Standard profile fields to check for LinkedIn URLs (as tuple for immutability and performance)
+_STANDARD_PROFILE_FIELDS = (
+    'status_text', 'title', 'phone', 'skype', 'real_name_normalized',
+    'display_name', 'display_name_normalized', 'real_name', 'email'
+)
+
 def extract_linkedin_link(text: str) -> Optional[str]:
-    """Extract LinkedIn URL from text using regex"""
+    """Extract LinkedIn URL from text using pre-compiled regex patterns"""
     if not text:
         return None
     
-    # Enhanced LinkedIn URL patterns
-    linkedin_patterns = [
-        r'<https?://(?:www\.)?linkedin\.com/in/[^>]+>',
-        r'\(https?://(?:www\.)?linkedin\.com/in/[^)]+\)',
-        r'https?://(?:www\.)?linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>|LinkedIn|linkedin)',
-        r'https?://(?:www\.)?linkedin\.com/pub/[\w\-\.]+/?(?=\s|$)',
-        r'linkedin\.com/in/[\w\-\.]+/?(?=\s|$|>)',
-        r'linkedin\.com/pub/[\w\-\.]+/?(?=\s|$|>)'
-    ]
-    
-    for pattern in linkedin_patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
+    for pattern in _LINKEDIN_PATTERNS:
+        match = pattern.search(text)
         if match:
             url = match.group(0)
             
@@ -111,13 +117,8 @@ def search_user_profile_for_linkedin(user_id: str, timeout_seconds: int = 30) ->
         # Check ALL profile fields that might contain LinkedIn URLs
         profile_fields = []
         
-        # Standard profile fields
-        standard_fields = [
-            'status_text', 'title', 'phone', 'skype', 'real_name_normalized',
-            'display_name', 'display_name_normalized', 'real_name', 'email'
-        ]
-        
-        for field in standard_fields:
+        # Check standard profile fields (using module constant)
+        for field in _STANDARD_PROFILE_FIELDS:
             value = profile.get(field, '')
             if value:
                 profile_fields.append(value)
@@ -243,8 +244,8 @@ def search_user_profile_for_linkedin_with_fallback(user_id: str, username: str =
                 
                 if result and 'profile' in result:
                     profile = result['profile']
-                    # Check the same fields as above
-                    for field_name in ['status_text', 'title', 'display_name', 'real_name']:
+                    # Check the same standard fields using module constant
+                    for field_name in _STANDARD_PROFILE_FIELDS:
                         field_value = profile.get(field_name, '')
                         if field_value:
                             linkedin_url = extract_linkedin_link(str(field_value))
