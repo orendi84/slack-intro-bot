@@ -145,24 +145,24 @@ def generate_welcome_message(intro_data: Dict) -> str:
     first_name = intro_data['first_name'].capitalize()
     return config.welcome_message_template.format(first_name=first_name)
 
-def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./welcome_messages", output_date: str = None):
+def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./welcome_messages", output_date: str = None, error_info: str = None):
     """Save daily intro report with security validation and optimized I/O"""
     security = _get_cached_security_manager()
-    
+
     # Validate output directory path (treat as directory, not file)
     if not security.validate_file_operation(output_dir, "create"):
         raise ValueError(f"Invalid output directory path: {output_dir}")
-    
+
     os.makedirs(output_dir, exist_ok=True)
     date_str = output_date if output_date else datetime.now().strftime('%Y-%m-%d')
-    
+
     # Validate filename
     filename = f"daily_intros_{date_str}.md"
     if not security.validator.validate_filename(filename, ['.md']):
         raise ValueError(f"Invalid filename: {filename}")
-    
+
     filepath = os.path.join(output_dir, filename)
-    
+
     # Validate full file path
     if not security.validate_file_operation(filepath, "write"):
         raise ValueError(f"Invalid file path: {filepath}")
@@ -174,7 +174,10 @@ def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./
         "**🚀 This report was generated using LIVE Slack data via MCP Zapier integration!**\n\n"
     ]
 
-    if not welcome_messages:
+    # Add error information if present
+    if error_info:
+        content_parts.append(f"## ⚠️ Error\n\n{error_info}\n\n")
+    elif not welcome_messages:
         content_parts.append("*No new introductions found in recent messages.*\n")
     else:
         content_parts.extend([
@@ -291,15 +294,19 @@ def get_cutoff_timestamp(start_date=None):
     return cutoff_timestamp
 
 def get_messages_for_timestamp_range(start_timestamp, end_date=None):
-    """Get messages for a specific timestamp range using Slack API search"""
+    """Get messages for a specific timestamp range using Slack API search
+
+    Returns:
+        tuple: (messages_list, error_message) where error_message is None if successful
+    """
     # Extract date part once (more efficient than multiple splits)
     start_date = start_timestamp.split('T', 1)[0]
-    
+
     # Build search query based on date range with proper date arithmetic
     if end_date:
         # For specific date ranges, adjust dates to include the target date
         end_date_part = end_date.split('T', 1)[0] if 'T' in end_date else end_date
-        
+
         if start_date == end_date_part:
             search_query = f"in:intros during:{start_date}"
         else:
@@ -330,6 +337,19 @@ def get_messages_for_timestamp_range(start_timestamp, end_date=None):
             sort_dir="desc"
         )
 
+        # Check if result is None (indicates an error in mcp_adapter)
+        if result is None:
+            error_msg = (
+                "**Zapier API Error: Insufficient Tasks/Quota**\n\n"
+                "The Zapier integration has run out of available tasks for this billing period.\n\n"
+                "**Solutions:**\n"
+                "- Upgrade your Zapier plan to get more tasks\n"
+                "- Wait until your task quota resets (usually monthly)\n"
+                "- Use the Slack API directly instead of through Zapier\n"
+            )
+            print("❌ Zapier quota exceeded - cannot retrieve messages")
+            return [], error_msg
+
         if result and 'results' in result:
             messages = []
             for msg in result['results']:
@@ -347,19 +367,27 @@ def get_messages_for_timestamp_range(start_timestamp, end_date=None):
                 messages.append(message)
 
             print(f"📨 Found {len(messages)} messages from Slack API")
-            return messages
+            return messages, None
         else:
             print("⚠️  No messages found in API response")
-            return []
+            return [], None
 
     except NameError:
+        error_msg = (
+            "**MCP Configuration Error**\n\n"
+            "The Slack search function is not available. This usually means:\n"
+            "- MCP Zapier server is not connected\n"
+            "- Check your MCP server configuration\n"
+            "- Verify your Zapier integration is properly set up\n"
+        )
         print("❌ Slack search function not available")
         print("💡 This usually means MCP Zapier server is not connected")
         print("💡 Check your MCP server configuration and Zapier integration")
-        return []
+        return [], error_msg
     except Exception as e:
+        error_msg = f"**Unexpected Error**\n\nError searching Slack: {str(e)}\n"
         print(f"❌ Error searching Slack: {e}")
-        return []
+        return [], error_msg
 
 def print_usage():
     """Print usage information"""
@@ -419,7 +447,14 @@ def main(start_date=None, end_date=None, output_date=None):
 
     # Get messages for the specified timestamp range
     print("📡 Filtering messages by timestamp range...")
-    recent_messages = get_messages_for_timestamp_range(cutoff_timestamp, end_date)
+    recent_messages, error_message = get_messages_for_timestamp_range(cutoff_timestamp, end_date)
+
+    # If there was an error, save report with error info and exit
+    if error_message:
+        print("❌ Error occurred while fetching messages")
+        filename = save_daily_intro_report([], output_date=output_date, error_info=error_message)
+        print(f"📁 Error report saved to: {filename}")
+        return filename
 
     if recent_messages:
         print(f"✅ Found {len(recent_messages)} messages in date range")
