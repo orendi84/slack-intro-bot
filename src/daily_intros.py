@@ -13,10 +13,19 @@ See DUAL_MODE_USAGE.md for detailed usage instructions
 import json
 import re
 import os
+import sys
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
-from .user_profile_search import safe_profile_search_for_daily_intros
-from .dual_mode.mcp_adapter import get_mcp_adapter
+
+# Support both direct execution and package import
+if __name__ == "__main__" or not __package__:
+    # Direct execution - use absolute imports
+    from user_profile_search import safe_profile_search_for_daily_intros
+    from dual_mode.mcp_adapter import get_mcp_adapter
+else:
+    # Package import - use relative imports
+    from .user_profile_search import safe_profile_search_for_daily_intros
+    from .dual_mode.mcp_adapter import get_mcp_adapter
 
 # Pre-compile regex patterns for better performance
 _LINKEDIN_PATTERNS = [
@@ -49,7 +58,10 @@ def _get_cached_security_manager():
     """Get cached security manager instance"""
     global _security_manager_cache
     if _security_manager_cache is None:
-        from .security.security_config import get_security_manager
+        if __name__ == "__main__" or not __package__:
+            from security.security_config import get_security_manager
+        else:
+            from .security.security_config import get_security_manager
         _security_manager_cache = get_security_manager()
     return _security_manager_cache
 
@@ -57,7 +69,10 @@ def _get_cached_config():
     """Get cached config instance"""
     global _config_cache
     if _config_cache is None:
-        from .config import Config
+        if __name__ == "__main__" or not __package__:
+            from config import Config
+        else:
+            from .config import Config
         _config_cache = Config()
     return _config_cache
 
