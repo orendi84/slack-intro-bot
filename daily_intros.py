@@ -2,6 +2,12 @@
 """
 Simple Daily Intro Bot - Manual Process
 Run this each morning to get today's introduction report
+
+DUAL MODE SUPPORT:
+- In Cursor IDE: Generates request prompts for Claude Code
+- In Claude Code: Executes directly with MCP tools
+
+See DUAL_MODE_USAGE.md for detailed usage instructions
 """
 
 import json
