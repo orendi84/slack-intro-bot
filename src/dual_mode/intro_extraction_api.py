@@ -180,14 +180,28 @@ def extract_intros_mcp_mode(start_date: Optional[str] = None,
     
     # If we're in MCP mode, import the actual implementation
     try:
-        from daily_intros import (
-            get_cutoff_timestamp,
-            get_messages_for_timestamp_range,
-            parse_intro_message,
-            generate_welcome_message,
-            save_daily_intro_report
-        )
-        from user_profile_search import safe_profile_search_for_daily_intros
+        try:
+            from ..daily_intros import (
+                get_cutoff_timestamp,
+                get_messages_for_timestamp_range,
+                parse_intro_message,
+                generate_welcome_message,
+                save_daily_intro_report
+            )
+            from ..user_profile_search import safe_profile_search_for_daily_intros
+        except ImportError:
+            # Direct execution fallback
+            import sys
+            import os
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+            from daily_intros import (
+                get_cutoff_timestamp,
+                get_messages_for_timestamp_range,
+                parse_intro_message,
+                generate_welcome_message,
+                save_daily_intro_report
+            )
+            from user_profile_search import safe_profile_search_for_daily_intros
         
         print("🚀 Running in MCP mode (Claude Code)")
         print("="*60)
