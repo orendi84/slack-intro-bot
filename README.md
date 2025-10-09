@@ -126,23 +126,57 @@ python3 daily_intros.py 2025-09-17 2025-09-18 2025-09-18
 
 ```
 slack-intro-bot/
-├── 📄 daily_intros.py              # Main orchestrator (416 lines)
-├── 🔍 user_profile_search.py       # LinkedIn profile extraction (305 lines)
-├── 🔧 mcp_adapter.py               # Multi-environment MCP adapter
-├── 📋 PROJECT_OVERVIEW.md          # LLM-optimized documentation
-├── 📖 README.md                    # Human-readable documentation
-├── ⚙️ .env                         # Configuration (gitignored)
-├── 📁 welcome_messages/            # Generated reports
-│   ├── daily_intros_2025-01-21.md
-│   └── daily_intros_2025-01-22.md
-└── 🧪 tests/                       # Test suite (coming soon)
+├── 📄 README.md                    # Main documentation (this file)
+├── 📄 daily_intros.py              # Entry point (backward compatible)
+├── 📄 intro_extraction.py          # Dual-mode entry point
+├── 📄 requirements.txt             # Python dependencies
+│
+├── 📁 src/                         # Source code
+│   ├── daily_intros.py             # Main orchestrator
+│   ├── config.py                   # Configuration management
+│   ├── user_profile_search.py      # LinkedIn profile extraction
+│   ├── rate_limiter.py             # API rate limiting
+│   │
+│   ├── 📁 dual_mode/               # Dual-mode functionality
+│   │   ├── intro_extraction_api.py  # Request generation & execution
+│   │   ├── claude_code_executor.py  # Claude Code executor
+│   │   └── mcp_adapter.py           # Environment detection
+│   │
+│   └── 📁 security/                # Security components
+│       ├── security_config.py       # Security configuration
+│       └── security_scan.py         # Security scanning
+│
+├── 📁 tests/                       # Test suite
+│   ├── test_config.py
+│   ├── test_linkedin_extraction.py
+│   ├── test_security.py
+│   ├── test_dual_mode.py
+│   └── run_tests.py
+│
+├── 📁 scripts/                     # Utility scripts
+│   ├── demo_dual_mode.py           # Interactive demo
+│   ├── diagnose_mcp.py             # MCP diagnostics
+│   └── setup_dev.py                # Development setup
+│
+├── 📁 docs/                        # Documentation
+│   ├── README.md                   # Documentation index
+│   ├── DUAL_MODE_USAGE.md          # Dual-mode guide
+│   ├── MCP_SETUP.md                # MCP setup guide
+│   ├── SECURITY.md                 # Security guide
+│   └── archive/                    # Historical docs
+│
+├── 📁 reports/                     # Generated reports
+│   ├── welcome_messages/           # Daily intro reports
+│   └── security/                   # Security scan reports
+│
+└── 📁 logs/                        # Log files
 ```
 
 ### **Core Components**
-- **`daily_intros.py`**: Main entry point with three-phase processing
-- **`user_profile_search.py`**: Fallback LinkedIn extraction with timeout protection
-- **`mcp_adapter.py`**: Environment detection and function mapping
-- **`PROJECT_OVERVIEW.md`**: Comprehensive technical documentation for LLMs
+- **`src/daily_intros.py`**: Main entry point with three-phase processing
+- **`src/user_profile_search.py`**: Fallback LinkedIn extraction with timeout protection
+- **`src/dual_mode/`**: Dual-mode support for Cursor IDE and Claude Code
+- **`docs/`**: Comprehensive documentation
 
 ## 🛡️ **Safety & Security**
 
@@ -186,10 +220,12 @@ slack-intro-bot/
 
 ## 📚 **Documentation**
 
-- **📋 [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)**: Comprehensive technical documentation for LLMs
-- **📖 [README.md](README.md)**: Human-readable guide (this file)
-- **🔧 Code Comments**: Detailed inline documentation
-- **📊 Logging**: Comprehensive execution logs with emojis for easy parsing
+- **📖 [README.md](README.md)**: Main guide (this file)
+- **📋 [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md)**: Technical documentation
+- **🎯 [docs/DUAL_MODE_USAGE.md](docs/DUAL_MODE_USAGE.md)**: Dual-mode guide
+- **🔒 [docs/SECURITY.md](docs/SECURITY.md)**: Security guide
+- **⚡ [docs/QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)**: Quick commands
+- **📚 [docs/README.md](docs/README.md)**: Documentation index
 
 ## 🤝 **Contributing**
 
