@@ -23,14 +23,14 @@ class MCPAdapter:
     
     def _detect_mcp_server(self) -> str:
         """Detect which MCP server is available"""
-        # Check for Claude Code Environment functions (mcp_Zapier_*)
+        # Check for Claude Code Environment functions (mcp__zapier__*)
         claude_functions = [
-            'mcp_Zapier_slack_find_message',
-            'mcp_Zapier_slack_find_user_by_id',
-            'mcp_Zapier_slack_find_user_by_username'
+            'mcp__zapier__slack_find_message',
+            'mcp__zapier__slack_find_user_by_id',
+            'mcp__zapier__slack_find_user_by_username'
         ]
-        
-        # Check for Cursor functions (mcp__zapier__*)
+
+        # Check for Cursor functions (also mcp__zapier__*)
         cursor_functions = [
             'mcp__zapier__slack_find_message',
             'mcp__zapier__slack_find_user_by_id',
@@ -67,12 +67,12 @@ class MCPAdapter:
     def _setup_function_mapping(self):
         """Setup function mapping based on detected server type"""
         if self.server_type == 'claude':
-            # Claude Code Environment uses mcp_Zapier_* functions
+            # Claude Code Environment uses mcp__zapier__* functions
             self.function_map = {
-                'slack_find_message': 'mcp_Zapier_slack_find_message',
-                'slack_find_user_by_id': 'mcp_Zapier_slack_find_user_by_id',
-                'slack_find_user_by_username': 'mcp_Zapier_slack_find_user_by_username',
-                'slack_api_request_beta': 'mcp_Zapier_slack_api_request_beta'
+                'slack_find_message': 'mcp__zapier__slack_find_message',
+                'slack_find_user_by_id': 'mcp__zapier__slack_find_user_by_id',
+                'slack_find_user_by_username': 'mcp__zapier__slack_find_user_by_username',
+                'slack_api_request_beta': 'mcp__zapier__slack_api_request_beta'
             }
         elif self.server_type == 'cursor':
             # Cursor uses mcp__zapier__* functions
