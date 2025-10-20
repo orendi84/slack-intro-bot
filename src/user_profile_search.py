@@ -9,7 +9,7 @@ It's called as a fallback when LinkedIn links are not found in message content.
 import re
 import signal
 from typing import Optional, Dict
-from mcp_adapter import get_mcp_adapter
+from dual_mode.mcp_adapter import get_mcp_adapter
 
 # Pre-compile LinkedIn regex patterns for better performance
 _LINKEDIN_PATTERNS = [
