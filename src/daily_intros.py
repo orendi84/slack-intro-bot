@@ -323,28 +323,16 @@ def get_messages_for_timestamp_range(start_timestamp, end_date=None):
     # Extract date part once (more efficient than multiple splits)
     start_date = start_timestamp.split('T', 1)[0]
 
-    # Build search query based on date range with proper date arithmetic
+    # Build search query based on date range using exact provided bounds
     if end_date:
-        # For specific date ranges, adjust dates to include the target date
         end_date_part = end_date.split('T', 1)[0] if 'T' in end_date else end_date
 
         if start_date == end_date_part:
             search_query = f"in:intros during:{start_date}"
         else:
-            # Convert to datetime objects for proper date arithmetic
-            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-            end_dt = datetime.strptime(end_date_part, '%Y-%m-%d')
-
-            # Adjust dates: start_date-1 and end_date+2
-            adjusted_start = (start_dt - timedelta(days=1)).strftime('%Y-%m-%d')
-            adjusted_end = (end_dt + timedelta(days=2)).strftime('%Y-%m-%d')
-
-            search_query = f"in:intros after:{adjusted_start} before:{adjusted_end}"
+            search_query = f"in:intros after:{start_date} before:{end_date_part}"
     else:
-        # For open-ended searches, subtract 1 day from start
-        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-        adjusted_start = (start_dt - timedelta(days=1)).strftime('%Y-%m-%d')
-        search_query = f"in:intros after:{adjusted_start}"
+        search_query = f"in:intros after:{start_date}"
 
     print(f"🔍 Searching Slack with: {search_query}")
 
@@ -413,20 +401,19 @@ def get_messages_for_timestamp_range(start_timestamp, end_date=None):
 def print_usage():
     """Print usage information"""
     print("""
-Usage: python3 daily_intros.py [start_date] [end_date] [output_date]
+Usage: python3 daily_intros.py [output_date]
+
+Behavior:
+  The script always uses a local-time window of (today - 2 days) to (today + 1 day)
+  for filtering Slack messages, formatted as YYYY-MM-DD. Any provided start/end
+  date arguments are ignored.
 
 Parameters:
-  start_date   - Start cutoff date (YYYY-MM-DD) or 'auto' for auto-detection
-                 If omitted or 'auto', automatically finds latest timestamp from most recent MD file
-  end_date     - End date for filtering (YYYY-MM-DD), optional
-  output_date  - Date for output filename (YYYY-MM-DD), optional (defaults to today)
+  output_date  - Date for output filename (YYYY-MM-DD), optional (defaults to today, local time)
 
 Examples:
-  python3 daily_intros.py                    # Auto-detect from latest MD file
-  python3 daily_intros.py auto               # Same as above
-  python3 daily_intros.py 2025-09-18         # Manual start date
-  python3 daily_intros.py 2025-09-18 2025-09-19  # Date range
-  python3 daily_intros.py 2025-09-18 2025-09-19 2025-09-20  # With custom output date
+  python3 daily_intros.py
+  python3 daily_intros.py 2025-10-31
 """)
 
 def main(start_date=None, end_date=None, output_date=None):
@@ -443,32 +430,23 @@ def main(start_date=None, end_date=None, output_date=None):
     print("🚀 Generating introduction report...")
     print("=" * 50)
 
-    # Handle command line arguments
+    # Handle command line arguments (only output_date is honored)
     if len(sys.argv) > 1:
         if sys.argv[1].lower() in ['help', '--help', '-h']:
             print_usage()
             return
-        start_date = sys.argv[1] if sys.argv[1].lower() != 'auto' else None
-        if len(sys.argv) > 2:
-            end_date = sys.argv[2]
-        if len(sys.argv) > 3:
-            output_date = sys.argv[3]
+        output_date = sys.argv[1]
 
-    # Get the cutoff timestamp (auto-detect if start_date is None)
-    cutoff_timestamp = get_cutoff_timestamp(start_date)
+    # Always compute local-time window: start = today-2, end = today+1
+    today_local = datetime.now().date()
+    start_date_str = (today_local - timedelta(days=2)).strftime('%Y-%m-%d')
+    end_date_str = (today_local + timedelta(days=1)).strftime('%Y-%m-%d')
 
-    if end_date:
-        search_query = f"in:intros after:{cutoff_timestamp} before:{end_date}"
-        print(f"🔎 Timestamp range: after {cutoff_timestamp} to {end_date}")
-    else:
-        search_query = f"in:intros after:{cutoff_timestamp}"
-        print(f"🔎 Timestamp range: after {cutoff_timestamp}")
+    print(f"📅 Using local date window: {start_date_str} to {end_date_str}")
 
-    print(f"🔎 Search query: {search_query}")
-
-    # Get messages for the specified timestamp range
+    # Preview search query (built in get_messages_for_timestamp_range)
     print("📡 Filtering messages by timestamp range...")
-    recent_messages, error_message = get_messages_for_timestamp_range(cutoff_timestamp, end_date)
+    recent_messages, error_message = get_messages_for_timestamp_range(start_date_str, end_date_str)
 
     # If there was an error, save report with error info and exit
     if error_message:
