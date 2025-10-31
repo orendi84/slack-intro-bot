@@ -1,12 +1,17 @@
 # Slack Intros Extraction
 
-Search for introduction messages in the #intros Slack channel since the last generated report and create a formatted markdown report.
+Extract introduction messages from the #intros Slack channel using the dual-mode intro extraction API.
 
 **Steps:**
-1. Use the Slack MCP tool to search for messages in the #intros channel from the last few days
-2. Extract introduction messages (messages that contain greeting phrases like "hi everyone", "hello", "my name is", etc.)
-3. Parse each intro to extract: name, username, LinkedIn profile (if mentioned), and the full message text
-4. Generate personalized welcome messages using the template: "Aloha {FirstName}!\n\nWelcome to Lenny's podcast community!\n\nHave a wonderful day!"
-5. Create a markdown report in ~/Developments/slack-intro-bot/welcome_messages/ named daily_intros_YYYY-MM-DD.md
-6. Include in the report: user info, LinkedIn links, draft welcome messages, and original intro text
-7. Tell the user the report location when done
+1. Calculate date range: Use (current_date - 2 days) as start_date and (current_date + 1 day) as end_date (format: YYYY-MM-DD)
+2. Navigate to ~/Developments/slack-intro-bot and run the intro extraction API: `python3 intro_extraction.py <start_date> <end_date>`
+3. The script will generate a request with parameters for Claude Code to execute
+4. Use the Slack MCP tools (mcp__zapier__slack_find_message, mcp__zapier__slack_find_user_by_id, mcp__zapier__slack_api_request_beta) to:
+   - Search for messages in #intros channel
+   - Extract introduction messages
+   - Get LinkedIn profiles from messages and user profiles
+5. Generate personalized welcome messages using the template: 'Aloha {FirstName}!\n\nWelcome to Lenny's podcast community!\n\nHave a wonderful day!'
+6. Create markdown report in ~/Developments/slack-intro-bot/welcome_messages/ named daily_intros_YYYY-MM-DD.md where YYYY-MM-DD is TODAY's date
+7. Report back the results location when done
+
+**Example:** If today is 2025-10-31, use start_date=2025-10-29 (current_date - 2 days), end_date=2025-11-01 (current_date + 1 day), and create file daily_intros_2025-10-31.md
