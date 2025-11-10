@@ -134,7 +134,9 @@ filename = save_daily_intro_report(welcome_messages, output_date='2025-11-10')
 
 ### Markdown Report
 
-Location: `./welcome_messages/daily_intros_YYYY-MM-DD.md`
+Location: `/Users/gergoorendi/Library/CloudStorage/GoogleDrive-orendigergo@gmail.com/My Drive/Downloads-Sync/Lenny welcome messages/daily_intros_YYYY-MM-DD.md`
+
+**Note:** This default location syncs to Google Drive automatically. You can override it by setting the `OUTPUT_DIRECTORY` environment variable.
 
 Contains:
 - Summary of introductions found
@@ -298,9 +300,10 @@ Check:
 ### If Report Isn't Generated
 
 Check:
-1. `./welcome_messages/` directory exists
+1. Output directory exists and is accessible (default: Google Drive sync folder)
 2. File permissions allow writing
 3. No errors in the processing steps
+4. You can override output directory with `OUTPUT_DIRECTORY` environment variable
 
 ## 📊 Quota Management
 

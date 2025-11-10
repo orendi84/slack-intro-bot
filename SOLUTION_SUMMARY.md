@@ -82,14 +82,16 @@ That's it! Claude Code will:
    ⏳ No LinkedIn in message
    ℹ️  No LinkedIn found in profile either
 
-💾 Report saved to: ./welcome_messages/daily_intros_2025-11-10.md
+💾 Report saved to: /Users/gergoorendi/Library/CloudStorage/GoogleDrive-orendigergo@gmail.com/My Drive/Downloads-Sync/Lenny welcome messages/daily_intros_2025-11-10.md
 📊 Total introductions: 2
 🔗 LinkedIn profiles found: 1
 ```
 
 ## 📁 Generated Report
 
-The report is saved as: `./welcome_messages/daily_intros_YYYY-MM-DD.md`
+The report is saved to Google Drive (auto-synced): `/Users/gergoorendi/Library/CloudStorage/GoogleDrive-orendigergo@gmail.com/My Drive/Downloads-Sync/Lenny welcome messages/daily_intros_YYYY-MM-DD.md`
+
+**Note:** You can override this location by setting the `OUTPUT_DIRECTORY` environment variable.
 
 Example content:
 

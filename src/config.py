@@ -40,7 +40,7 @@ class LinkedInConfig:
 @dataclass
 class OutputConfig:
     """Output and reporting configuration"""
-    output_directory: str = "welcome_messages"
+    output_directory: str = "/Users/gergoorendi/Library/CloudStorage/GoogleDrive-orendigergo@gmail.com/My Drive/Downloads-Sync/Lenny welcome messages"
     file_permissions: int = 0o600
     date_format: str = "%Y-%m-%d"
     filename_template: str = "daily_intros_{date}.md"
