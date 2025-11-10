@@ -166,8 +166,13 @@ def generate_welcome_message(intro_data: Dict) -> str:
     first_name = intro_data['first_name'].capitalize()
     return config.welcome.template.format(first_name=first_name)
 
-def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./welcome_messages", output_date: str = None, error_info: str = None):
+def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = None, output_date: str = None, error_info: str = None):
     """Save daily intro report with security validation and optimized I/O"""
+    # Use config default if not specified
+    if output_dir is None:
+        config = _get_cached_config()
+        output_dir = config.output.output_directory
+    
     security = _get_cached_security_manager()
 
     # Validate output directory path (treat as directory, not file)
@@ -272,7 +277,8 @@ def get_cutoff_timestamp(start_date=None):
     
     try:
         # Use os.scandir for better performance than glob
-        welcome_dir = "./welcome_messages"
+        config = _get_cached_config()
+        welcome_dir = config.output.output_directory
         if not os.path.exists(welcome_dir):
             return cutoff_timestamp
         
