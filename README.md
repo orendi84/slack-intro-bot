@@ -8,6 +8,21 @@ A sophisticated tool that extracts LinkedIn profiles from Slack introduction mes
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 [![Multi-Environment](https://img.shields.io/badge/Environment-Claude%20%7C%20Cursor-orange.svg)](https://claude.ai/)
 
+## 🎉 **NEW: Claude Code MCP Integration** (November 2025)
+
+**The bot now works seamlessly with Claude Code and Zapier MCP!** 
+
+Instead of running as a subprocess, Claude Code now orchestrates the entire workflow using MCP tools. [Read the solution summary →](SOLUTION_SUMMARY.md)
+
+### Quick Usage in Claude Code
+
+Just ask Claude Code:
+```
+"Extract Slack introductions from the last few days"
+```
+
+That's it! Claude Code will handle everything. See [CLAUDE_CODE_USAGE.md](docs/CLAUDE_CODE_USAGE.md) for details.
+
 ## ✨ **Features**
 
 - 🎯 **Smart LinkedIn Extraction**: Finds LinkedIn profiles in messages or user profiles

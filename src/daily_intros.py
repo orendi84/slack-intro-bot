@@ -164,7 +164,7 @@ def generate_welcome_message(intro_data: Dict) -> str:
     """Generate personalized welcome message using cached config"""
     config = _get_cached_config()
     first_name = intro_data['first_name'].capitalize()
-    return config.welcome_message_template.format(first_name=first_name)
+    return config.welcome.template.format(first_name=first_name)
 
 def save_daily_intro_report(welcome_messages: List[tuple], output_dir: str = "./welcome_messages", output_date: str = None, error_info: str = None):
     """Save daily intro report with security validation and optimized I/O"""
