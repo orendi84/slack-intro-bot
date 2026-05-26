@@ -37,5 +37,5 @@ pydantic==2.9.2
 
 # HTTP requests with pinned versions for security
 requests==2.32.3
-urllib3==2.2.3
+urllib3==2.7.0
 certifi==2024.8.30
