@@ -16,7 +16,7 @@ mypy==1.11.2
 # Security
 bandit==1.8.6
 safety==3.6.1
-cryptography==46.0.7
+cryptography==50.0.0
 secrets-manager==1.0.0
 
 # Development Tools
